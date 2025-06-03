@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "@/hooks/use-toast";
 import { Loader2, User, Phone, Calendar as CalendarIcon, Clock, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 const salesSchema = z.object({
   vendedor: z.string().min(1, "Nome do SDR é obrigatório"),
@@ -90,51 +91,61 @@ const Index = () => {
       console.log("Dados do formulário:", data);
       console.log("Reuniões:", reunioes);
       
-      // Simular envio para banco de dados
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Simular envio de email
-      const emailData = {
-        to: "viniciusrodrigues@liguelead.com.br",
-        subject: `Relatório Diário de Vendas - ${data.vendedor} - ${format(data.dataRegistro, 'dd/MM/yyyy')}`,
-        body: `
-          Relatório Diário de Atividades de Vendas
-          
-          SDR: ${data.vendedor}
-          Data: ${format(data.dataRegistro, 'dd/MM/yyyy')}
-          Contatos Falados: ${data.contatosFalados}
-          Reuniões Agendadas: ${data.reunioesAgendadas}
-          Reuniões Realizadas: ${data.reunioesRealizadas}
-          Ligações Realizadas: ${data.ligacoesRealizadas}
-          
-          Detalhes das Reuniões:
-          ${reunioes.map(r => `- ${r.nomeLead} | ${r.dataAgendamento} ${r.horarioAgendamento} | Status: ${r.status}`).join('\n')}
-        `
+      // Prepare data for the edge function
+      const reportData = {
+        vendedor: data.vendedor,
+        dataRegistro: format(data.dataRegistro, 'yyyy-MM-dd'),
+        contatosFalados: data.contatosFalados,
+        reunioesAgendadas: data.reunioesAgendadas,
+        reunioesRealizadas: data.reunioesRealizadas,
+        ligacoesRealizadas: data.ligacoesRealizadas,
+        reunioes: reunioes.map(r => ({
+          nomeLead: r.nomeLead,
+          dataAgendamento: r.dataAgendamento,
+          horarioAgendamento: r.horarioAgendamento,
+          status: r.status
+        }))
       };
-      
-      console.log("Email enviado:", emailData);
-      
-      toast({
-        title: "✅ Relatório enviado com sucesso!",
-        description: "Seus dados foram salvos e o e-mail foi enviado para a gerência.",
+
+      console.log("Enviando dados para a função edge:", reportData);
+
+      // Call the edge function to save data and send email
+      const { data: result, error } = await supabase.functions.invoke('send-report-email', {
+        body: reportData
       });
+
+      if (error) {
+        console.error("Erro ao chamar função edge:", error);
+        throw error;
+      }
+
+      console.log("Resposta da função edge:", result);
+
+      if (result.success) {
+        toast({
+          title: "✅ Relatório enviado com sucesso!",
+          description: "Seus dados foram salvos no banco e o e-mail foi enviado para a gerência.",
+        });
+        
+        // Reset do formulário
+        form.reset({
+          vendedor: "",
+          dataRegistro: new Date(),
+          contatosFalados: 0,
+          reunioesAgendadas: 0,
+          reunioesRealizadas: 0,
+          ligacoesRealizadas: 0,
+        });
+        setReunioes([]);
+      } else {
+        throw new Error(result.error || 'Erro desconhecido');
+      }
       
-      // Reset do formulário
-      form.reset({
-        vendedor: "",
-        dataRegistro: new Date(),
-        contatosFalados: 0,
-        reunioesAgendadas: 0,
-        reunioesRealizadas: 0,
-        ligacoesRealizadas: 0,
-      });
-      setReunioes([]);
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao enviar dados:", error);
       toast({
         title: "❌ Erro ao enviar",
-        description: "Ocorreu um erro. Tente novamente.",
+        description: error.message || "Ocorreu um erro. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -447,6 +458,7 @@ const Index = () => {
         
         <div className="mt-6 text-center text-sm text-gray-600">
           <p>📧 Relatório será enviado automaticamente para: viniciusrodrigues@liguelead.com.br</p>
+          <p className="mt-1 text-xs">💾 Dados também serão salvos no banco de dados</p>
         </div>
       </div>
     </div>

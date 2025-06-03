@@ -9,7 +9,80 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      daily_reports: {
+        Row: {
+          contatos_falados: number
+          created_at: string
+          data_registro: string
+          id: string
+          ligacoes_realizadas: number
+          reunioes_agendadas: number
+          reunioes_realizadas: number
+          updated_at: string
+          vendedor: string
+        }
+        Insert: {
+          contatos_falados?: number
+          created_at?: string
+          data_registro: string
+          id?: string
+          ligacoes_realizadas?: number
+          reunioes_agendadas?: number
+          reunioes_realizadas?: number
+          updated_at?: string
+          vendedor: string
+        }
+        Update: {
+          contatos_falados?: number
+          created_at?: string
+          data_registro?: string
+          id?: string
+          ligacoes_realizadas?: number
+          reunioes_agendadas?: number
+          reunioes_realizadas?: number
+          updated_at?: string
+          vendedor?: string
+        }
+        Relationships: []
+      }
+      meeting_details: {
+        Row: {
+          created_at: string
+          data_agendamento: string
+          horario_agendamento: string
+          id: string
+          nome_lead: string
+          report_id: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          data_agendamento: string
+          horario_agendamento: string
+          id?: string
+          nome_lead: string
+          report_id?: string | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          data_agendamento?: string
+          horario_agendamento?: string
+          id?: string
+          nome_lead?: string
+          report_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_details_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "daily_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
