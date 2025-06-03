@@ -1,20 +1,25 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, User, Phone, Calendar, Clock, Plus, Trash2 } from "lucide-react";
+import { Loader2, User, Phone, Calendar as CalendarIcon, Clock, Plus, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const salesSchema = z.object({
-  vendedor: z.string().min(1, "Nome do vendedor é obrigatório"),
-  dataRegistro: z.string(),
+  vendedor: z.string().min(1, "Nome do SDR é obrigatório"),
+  dataRegistro: z.date({
+    required_error: "Data do registro é obrigatória",
+  }),
   contatosFalados: z.number().min(0, "Quantidade deve ser maior ou igual a 0"),
   reunioesAgendadas: z.number().min(0, "Quantidade deve ser maior ou igual a 0"),
   reunioesRealizadas: z.number().min(0, "Quantidade deve ser maior ou igual a 0"),
@@ -31,13 +36,9 @@ interface ReuniaoLead {
   status: "Agendado" | "Realizado" | "Reagendamento";
 }
 
-const vendedoresPredefinidos = [
-  "Ana Silva",
-  "Carlos Santos",
-  "Maria Oliveira",
-  "João Pereira",
-  "Fernanda Costa",
-  "Ricardo Lima"
+const sdrsDisponiveis = [
+  "Nathalia",
+  "Taynara"
 ];
 
 const Index = () => {
@@ -54,7 +55,7 @@ const Index = () => {
     resolver: zodResolver(salesSchema),
     defaultValues: {
       vendedor: "",
-      dataRegistro: new Date().toISOString().split('T')[0],
+      dataRegistro: new Date(),
       contatosFalados: 0,
       reunioesAgendadas: 0,
       reunioesRealizadas: 0,
@@ -95,12 +96,12 @@ const Index = () => {
       // Simular envio de email
       const emailData = {
         to: "viniciusrodrigues@liguelead.com.br",
-        subject: `Relatório Diário de Vendas - ${data.vendedor} - ${data.dataRegistro}`,
+        subject: `Relatório Diário de Vendas - ${data.vendedor} - ${format(data.dataRegistro, 'dd/MM/yyyy')}`,
         body: `
           Relatório Diário de Atividades de Vendas
           
-          Vendedor: ${data.vendedor}
-          Data: ${data.dataRegistro}
+          SDR: ${data.vendedor}
+          Data: ${format(data.dataRegistro, 'dd/MM/yyyy')}
           Contatos Falados: ${data.contatosFalados}
           Reuniões Agendadas: ${data.reunioesAgendadas}
           Reuniões Realizadas: ${data.reunioesRealizadas}
@@ -121,7 +122,7 @@ const Index = () => {
       // Reset do formulário
       form.reset({
         vendedor: "",
-        dataRegistro: new Date().toISOString().split('T')[0],
+        dataRegistro: new Date(),
         contatosFalados: 0,
         reunioesAgendadas: 0,
         reunioesRealizadas: 0,
@@ -161,7 +162,7 @@ const Index = () => {
                   name="vendedor"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-700 font-semibold">Nome do Vendedor *</FormLabel>
+                      <FormLabel className="text-gray-700 font-semibold">Nome do SDR *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger className="h-12">
@@ -169,9 +170,9 @@ const Index = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {vendedoresPredefinidos.map((vendedor) => (
-                            <SelectItem key={vendedor} value={vendedor}>
-                              {vendedor}
+                          {sdrsDisponiveis.map((sdr) => (
+                            <SelectItem key={sdr} value={sdr}>
+                              {sdr}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -185,16 +186,37 @@ const Index = () => {
                   control={form.control}
                   name="dataRegistro"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-gray-700 font-semibold">Data do Registro</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="date" 
-                          {...field} 
-                          className="h-12"
-                          disabled
-                        />
-                      </FormControl>
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="text-gray-700 font-semibold">Data do Registro *</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "h-12 pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "dd/MM/yyyy")
+                              ) : (
+                                <span>Selecione a data</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -230,7 +252,7 @@ const Index = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-gray-700 font-semibold flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
+                          <CalendarIcon className="h-4 w-4" />
                           Reuniões Agendadas *
                         </FormLabel>
                         <FormControl>
@@ -253,7 +275,7 @@ const Index = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-gray-700 font-semibold flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
+                          <CalendarIcon className="h-4 w-4" />
                           Reuniões Realizadas *
                         </FormLabel>
                         <FormControl>
@@ -296,7 +318,7 @@ const Index = () => {
 
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
+                    <CalendarIcon className="h-5 w-5" />
                     Detalhes das Reuniões
                   </h3>
                   
