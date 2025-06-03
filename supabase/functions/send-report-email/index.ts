@@ -1,4 +1,5 @@
 
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
@@ -124,10 +125,10 @@ serve(async (req) => {
       </div>
     `;
 
-    // Send email - usando email de teste do Resend
+    // Send email
     const emailResult = await resend.emails.send({
       from: "LigueLead <onboarding@resend.dev>",
-      to: ["delivered@resend.dev"], // Email de teste do Resend que sempre funciona
+      to: ["viniciusrodrigues@liguelead.com.br"],
       subject: `📊 Relatório Diário - ${reportData.vendedor} - ${new Date(reportData.dataRegistro).toLocaleDateString('pt-BR')}`,
       html: emailHtml,
     });
@@ -144,8 +145,7 @@ serve(async (req) => {
         success: true, 
         message: 'Relatório salvo e email enviado com sucesso!',
         reportId: reportRecord.id,
-        emailId: emailResult.data?.id,
-        emailInfo: 'Email enviado para delivered@resend.dev (email de teste)'
+        emailId: emailResult.data?.id
       }), 
       {
         status: 200,
@@ -167,3 +167,4 @@ serve(async (req) => {
     );
   }
 });
+
