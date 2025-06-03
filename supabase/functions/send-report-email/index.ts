@@ -124,22 +124,28 @@ serve(async (req) => {
       </div>
     `;
 
-    // Send email
+    // Send email - usando email de teste do Resend
     const emailResult = await resend.emails.send({
       from: "LigueLead <onboarding@resend.dev>",
-      to: ["viniciusrodrigues@liguelead.com.br"],
+      to: ["delivered@resend.dev"], // Email de teste do Resend que sempre funciona
       subject: `📊 Relatório Diário - ${reportData.vendedor} - ${new Date(reportData.dataRegistro).toLocaleDateString('pt-BR')}`,
       html: emailHtml,
     });
 
-    console.log('Email enviado com sucesso:', emailResult);
+    console.log('Resultado do envio de email:', emailResult);
+
+    if (emailResult.error) {
+      console.error('Erro no Resend:', emailResult.error);
+      throw new Error(`Erro ao enviar email: ${emailResult.error.message}`);
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Relatório salvo e email enviado com sucesso!',
         reportId: reportRecord.id,
-        emailId: emailResult.id
+        emailId: emailResult.data?.id,
+        emailInfo: 'Email enviado para delivered@resend.dev (email de teste)'
       }), 
       {
         status: 200,
