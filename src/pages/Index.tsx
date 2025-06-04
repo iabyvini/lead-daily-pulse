@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,8 +39,15 @@ interface ReuniaoLead {
 }
 
 const sdrsDisponiveis = [
-  "Nathalia",
-  "Taynara"
+  "Jean",
+  "Rafaela", 
+  "Ricardo",
+  "Lara",
+  "Cris",
+  "Guilherme",
+  "Yago",
+  "Lorena",
+  "André"
 ];
 
 const Index = () => {
