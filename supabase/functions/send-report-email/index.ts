@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
@@ -18,6 +19,7 @@ interface ReportData {
     dataAgendamento: string;
     horarioAgendamento: string;
     status: string;
+    vendedorResponsavel: string;
   }>;
 }
 
@@ -65,6 +67,7 @@ serve(async (req) => {
         data_agendamento: reuniao.dataAgendamento,
         horario_agendamento: reuniao.horarioAgendamento,
         status: reuniao.status,
+        vendedor_responsavel: reuniao.vendedorResponsavel,
       }));
 
       const { error: meetingsError } = await supabase
@@ -79,13 +82,13 @@ serve(async (req) => {
     // Prepare email content
     const reunioesText = reportData.reunioes.length > 0 
       ? reportData.reunioes.map(r => 
-          `- ${r.nomeLead} | ${r.dataAgendamento} ${r.horarioAgendamento} | Status: ${r.status}`
+          `- ${r.nomeLead} | ${r.dataAgendamento} ${r.horarioAgendamento} | Status: ${r.status} | Responsável: ${r.vendedorResponsavel}`
         ).join('\n')
       : 'Nenhuma reunião registrada.';
 
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #059669; border-bottom: 2px solid #059669; padding-bottom: 10px;">
+        <h2 style="color: #1bccae; border-bottom: 2px solid #1bccae; padding-bottom: 10px;">
           📊 Relatório Diário de Atividades de Vendas
         </h2>
         
@@ -105,7 +108,7 @@ serve(async (req) => {
 
         <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="color: #047857; margin-top: 0;">🤝 Detalhes das Reuniões</h3>
-          <pre style="background-color: white; padding: 15px; border-radius: 4px; border-left: 4px solid #059669; font-family: monospace; white-space: pre-wrap;">${reunioesText}</pre>
+          <pre style="background-color: white; padding: 15px; border-radius: 4px; border-left: 4px solid #1bccae; font-family: monospace; white-space: pre-wrap;">${reunioesText}</pre>
         </div>
 
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">

@@ -13,9 +13,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, User, Calendar as CalendarIcon, Plus, Trash2 } from "lucide-react";
+import { Loader2, User, Calendar as CalendarIcon, Plus, Trash2, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const salesSchema = z.object({
   vendedor: z.string().min(1, "Nome do SDR é obrigatório"),
@@ -34,6 +35,7 @@ interface ReuniaoLead {
   dataAgendamento: string;
   horarioAgendamento: string;
   status: "Agendado" | "Realizado" | "Reagendamento";
+  vendedorResponsavel: string;
 }
 
 const sdrsDisponiveis = [
@@ -48,8 +50,10 @@ const Index = () => {
     nomeLead: "",
     dataAgendamento: "",
     horarioAgendamento: "",
-    status: "Agendado"
+    status: "Agendado",
+    vendedorResponsavel: ""
   });
+  const navigate = useNavigate();
 
   const form = useForm<SalesFormData>({
     resolver: zodResolver(salesSchema),
@@ -62,7 +66,7 @@ const Index = () => {
   });
 
   const adicionarReuniao = () => {
-    if (novaReuniao.nomeLead && novaReuniao.dataAgendamento && novaReuniao.horarioAgendamento) {
+    if (novaReuniao.nomeLead && novaReuniao.dataAgendamento && novaReuniao.horarioAgendamento && novaReuniao.vendedorResponsavel) {
       const reuniao: ReuniaoLead = {
         ...novaReuniao,
         id: Date.now().toString()
@@ -72,7 +76,8 @@ const Index = () => {
         nomeLead: "",
         dataAgendamento: "",
         horarioAgendamento: "",
-        status: "Agendado"
+        status: "Agendado",
+        vendedorResponsavel: ""
       });
     }
   };
@@ -98,7 +103,8 @@ const Index = () => {
           nomeLead: r.nomeLead,
           dataAgendamento: r.dataAgendamento,
           horarioAgendamento: r.horarioAgendamento,
-          status: r.status
+          status: r.status,
+          vendedorResponsavel: r.vendedorResponsavel
         }))
       };
 
@@ -147,10 +153,10 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white p-4">
       <div className="max-w-4xl mx-auto">
-        <Card className="shadow-xl">
-          <CardHeader className="bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-t-lg">
+        <Card className="shadow-xl border-emerald-200">
+          <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white rounded-t-lg">
             <CardTitle className="text-center text-2xl font-bold flex items-center justify-center gap-2">
               <User className="h-6 w-6" />
               Relatório Diário de Vendas
@@ -158,6 +164,18 @@ const Index = () => {
           </CardHeader>
           
           <CardContent className="p-6">
+            {/* Botão para acessar dashboard */}
+            <div className="mb-6 text-center">
+              <Button 
+                onClick={() => navigate('/auth')}
+                variant="outline"
+                className="border-[#1bccae] text-[#1bccae] hover:bg-emerald-50"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Acessar Relatórios
+              </Button>
+            </div>
+
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 
@@ -169,7 +187,7 @@ const Index = () => {
                       <FormLabel className="text-gray-700 font-semibold">Nome do SDR *</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-12">
+                          <SelectTrigger className="h-12 border-emerald-200 focus:border-[#1bccae]">
                             <SelectValue placeholder="Selecione seu nome" />
                           </SelectTrigger>
                         </FormControl>
@@ -198,7 +216,7 @@ const Index = () => {
                             <Button
                               variant={"outline"}
                               className={cn(
-                                "h-12 pl-3 text-left font-normal",
+                                "h-12 pl-3 text-left font-normal border-emerald-200 focus:border-[#1bccae]",
                                 !field.value && "text-muted-foreground"
                               )}
                             >
@@ -241,7 +259,7 @@ const Index = () => {
                             type="number" 
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            className="h-12"
+                            className="h-12 border-emerald-200 focus:border-[#1bccae]"
                             min="0"
                           />
                         </FormControl>
@@ -264,7 +282,7 @@ const Index = () => {
                             type="number" 
                             {...field}
                             onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            className="h-12"
+                            className="h-12 border-emerald-200 focus:border-[#1bccae]"
                             min="0"
                           />
                         </FormControl>
@@ -280,14 +298,14 @@ const Index = () => {
                     Detalhes das Reuniões
                   </h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-green-50 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-emerald-50 rounded-lg">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Lead</label>
                       <Input
                         value={novaReuniao.nomeLead}
                         onChange={(e) => setNovaReuniao({...novaReuniao, nomeLead: e.target.value})}
                         placeholder="Nome do lead"
-                        className="h-10"
+                        className="h-10 border-emerald-200 focus:border-[#1bccae]"
                       />
                     </div>
                     <div>
@@ -296,7 +314,7 @@ const Index = () => {
                         type="date"
                         value={novaReuniao.dataAgendamento}
                         onChange={(e) => setNovaReuniao({...novaReuniao, dataAgendamento: e.target.value})}
-                        className="h-10"
+                        className="h-10 border-emerald-200 focus:border-[#1bccae]"
                       />
                     </div>
                     <div>
@@ -305,7 +323,7 @@ const Index = () => {
                         type="time"
                         value={novaReuniao.horarioAgendamento}
                         onChange={(e) => setNovaReuniao({...novaReuniao, horarioAgendamento: e.target.value})}
-                        className="h-10"
+                        className="h-10 border-emerald-200 focus:border-[#1bccae]"
                       />
                     </div>
                     <div>
@@ -316,7 +334,7 @@ const Index = () => {
                           setNovaReuniao({...novaReuniao, status: value})
                         }
                       >
-                        <SelectTrigger className="h-10">
+                        <SelectTrigger className="h-10 border-emerald-200 focus:border-[#1bccae]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -326,27 +344,46 @@ const Index = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Vendedor Responsável</label>
+                      <Select 
+                        value={novaReuniao.vendedorResponsavel} 
+                        onValueChange={(value) => setNovaReuniao({...novaReuniao, vendedorResponsavel: value})}
+                      >
+                        <SelectTrigger className="h-10 border-emerald-200 focus:border-[#1bccae]">
+                          <SelectValue placeholder="Selecione o SDR" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sdrsDisponiveis.map((sdr) => (
+                            <SelectItem key={sdr} value={sdr}>
+                              {sdr}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   
                   <Button 
                     type="button" 
                     onClick={adicionarReuniao}
                     variant="outline"
-                    className="border-green-500 text-green-600 hover:bg-green-50"
+                    className="border-[#1bccae] text-[#1bccae] hover:bg-emerald-50"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Adicionar Reunião
                   </Button>
 
                   {reunioes.length > 0 && (
-                    <div className="border rounded-lg overflow-hidden">
+                    <div className="border rounded-lg overflow-hidden border-emerald-200">
                       <Table>
                         <TableHeader>
-                          <TableRow className="bg-green-100">
+                          <TableRow className="bg-emerald-100">
                             <TableHead>Nome do Lead</TableHead>
                             <TableHead>Data</TableHead>
                             <TableHead>Horário</TableHead>
                             <TableHead>Status</TableHead>
+                            <TableHead>Vendedor Responsável</TableHead>
                             <TableHead>Ações</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -358,13 +395,14 @@ const Index = () => {
                               <TableCell>{reuniao.horarioAgendamento}</TableCell>
                               <TableCell>
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  reuniao.status === 'Realizado' ? 'bg-green-100 text-green-800' :
+                                  reuniao.status === 'Realizado' ? 'bg-emerald-100 text-emerald-800' :
                                   reuniao.status === 'Agendado' ? 'bg-blue-100 text-blue-800' :
                                   'bg-yellow-100 text-yellow-800'
                                 }`}>
                                   {reuniao.status}
                                 </span>
                               </TableCell>
+                              <TableCell>{reuniao.vendedorResponsavel}</TableCell>
                               <TableCell>
                                 <Button
                                   type="button"
@@ -386,7 +424,7 @@ const Index = () => {
 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-lg font-semibold"
+                  className="w-full h-12 bg-gradient-to-r from-[#1bccae] to-emerald-500 hover:from-emerald-600 hover:to-emerald-600 text-lg font-semibold"
                   disabled={isLoading}
                 >
                   {isLoading ? (
