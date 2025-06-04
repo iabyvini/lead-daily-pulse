@@ -67,7 +67,7 @@ const Index = () => {
   const adicionarReuniao = () => {
     console.log("Tentando adicionar reunião:", novaReuniao);
     
-    // Validação mais específica
+    // Validação específica para cada campo obrigatório
     if (!novaReuniao.nomeLead.trim()) {
       toast({
         title: "Campo obrigatório",
@@ -104,15 +104,16 @@ const Index = () => {
       return;
     }
 
+    // Criar nova reunião com ID único baseado em timestamp + número aleatório
     const reuniao: ReuniaoLead = {
       ...novaReuniao,
-      id: Date.now().toString()
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
     };
     
     console.log("Adicionando reunião:", reuniao);
     setReunioes(prev => [...prev, reuniao]);
     
-    // Limpar o formulário
+    // Limpar completamente o formulário para permitir nova entrada
     setNovaReuniao({
       nomeLead: "",
       dataAgendamento: "",
@@ -121,16 +122,21 @@ const Index = () => {
       vendedorResponsavel: ""
     });
     
-    console.log("Nova reunião limpa");
+    console.log("Formulário limpo, pronto para nova reunião");
     
     toast({
       title: "✅ Reunião adicionada",
-      description: "Reunião foi adicionada com sucesso!",
+      description: `Reunião com ${reuniao.nomeLead} foi adicionada com sucesso! Você pode adicionar quantas reuniões quiser.`,
     });
   };
 
   const removerReuniao = (id: string) => {
-    setReunioes(reunioes.filter(r => r.id !== id));
+    console.log("Removendo reunião:", id);
+    setReunioes(prev => prev.filter(r => r.id !== id));
+    toast({
+      title: "Reunião removida",
+      description: "A reunião foi removida da lista.",
+    });
   };
 
   const onSubmit = async (data: SalesFormData) => {
@@ -343,20 +349,23 @@ const Index = () => {
                   <h3 className="text-lg font-semibold text-gray-700 flex items-center gap-2">
                     <CalendarIcon className="h-5 w-5" />
                     Detalhes das Reuniões
+                    <span className="text-sm font-normal text-emerald-600">
+                      (Quantidade ilimitada - adicione quantas reuniões quiser)
+                    </span>
                   </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-emerald-50 rounded-lg">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Lead</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Lead *</label>
                       <Input
                         value={novaReuniao.nomeLead}
                         onChange={(e) => setNovaReuniao({...novaReuniao, nomeLead: e.target.value})}
-                        placeholder="Nome do lead"
+                        placeholder="Nome completo do lead"
                         className="h-10 border-emerald-200 focus:border-[#1bccae]"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Data</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Data *</label>
                       <Input
                         type="date"
                         value={novaReuniao.dataAgendamento}
@@ -365,7 +374,7 @@ const Index = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Horário</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Horário *</label>
                       <Input
                         type="time"
                         value={novaReuniao.horarioAgendamento}
@@ -374,7 +383,7 @@ const Index = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Status *</label>
                       <Select 
                         value={novaReuniao.status} 
                         onValueChange={(value: "Agendado" | "Realizado" | "Reagendamento") => 
@@ -392,7 +401,7 @@ const Index = () => {
                       </Select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Vendedor Responsável</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Vendedor Responsável *</label>
                       <Select 
                         value={novaReuniao.vendedorResponsavel} 
                         onValueChange={(value) => setNovaReuniao({...novaReuniao, vendedorResponsavel: value})}
@@ -418,14 +427,19 @@ const Index = () => {
                     className="border-[#1bccae] text-[#1bccae] hover:bg-emerald-50"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Adicionar Reunião
+                    Adicionar Reunião {reunioes.length > 0 && `(${reunioes.length} já adicionada${reunioes.length > 1 ? 's' : ''})`}
                   </Button>
 
                   {reunioes.length > 0 && (
                     <div className="border rounded-lg overflow-hidden border-emerald-200">
+                      <div className="bg-emerald-100 p-3">
+                        <h4 className="font-medium text-emerald-800">
+                          Reuniões Adicionadas ({reunioes.length})
+                        </h4>
+                      </div>
                       <Table>
                         <TableHeader>
-                          <TableRow className="bg-emerald-100">
+                          <TableRow className="bg-emerald-50">
                             <TableHead>Nome do Lead</TableHead>
                             <TableHead>Data</TableHead>
                             <TableHead>Horário</TableHead>
@@ -435,10 +449,12 @@ const Index = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {reunioes.map((reuniao) => (
+                          {reunioes.map((reuniao, index) => (
                             <TableRow key={reuniao.id}>
-                              <TableCell className="font-medium">{reuniao.nomeLead}</TableCell>
-                              <TableCell>{reuniao.dataAgendamento}</TableCell>
+                              <TableCell className="font-medium">
+                                <span className="text-emerald-700">#{index + 1}</span> {reuniao.nomeLead}
+                              </TableCell>
+                              <TableCell>{format(new Date(reuniao.dataAgendamento), 'dd/MM/yyyy')}</TableCell>
                               <TableCell>{reuniao.horarioAgendamento}</TableCell>
                               <TableCell>
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
