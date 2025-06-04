@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -351,7 +350,7 @@ const Index = () => {
                         onValueChange={(value) => setNovaReuniao({...novaReuniao, vendedorResponsavel: value})}
                       >
                         <SelectTrigger className="h-10 border-emerald-200 focus:border-[#1bccae]">
-                          <SelectValue placeholder="Selecione o SDR" />
+                          <SelectValue placeholder="Nome" />
                         </SelectTrigger>
                         <SelectContent>
                           {sdrsDisponiveis.map((sdr) => (
