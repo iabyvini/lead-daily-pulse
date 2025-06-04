@@ -54,7 +54,6 @@ export type Database = {
           nome_lead: string
           report_id: string | null
           status: string
-          vendedor_responsavel: string | null
         }
         Insert: {
           created_at?: string
@@ -64,7 +63,6 @@ export type Database = {
           nome_lead: string
           report_id?: string | null
           status: string
-          vendedor_responsavel?: string | null
         }
         Update: {
           created_at?: string
@@ -74,7 +72,6 @@ export type Database = {
           nome_lead?: string
           report_id?: string | null
           status?: string
-          vendedor_responsavel?: string | null
         }
         Relationships: [
           {
@@ -85,27 +82,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      profiles: {
-        Row: {
-          created_at: string | null
-          email: string | null
-          id: string
-          is_admin: boolean | null
-        }
-        Insert: {
-          created_at?: string | null
-          email?: string | null
-          id: string
-          is_admin?: boolean | null
-        }
-        Update: {
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          is_admin?: boolean | null
-        }
-        Relationships: []
       }
     }
     Views: {
