@@ -354,7 +354,7 @@ const Index = () => {
                     </span>
                   </h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 p-4 bg-emerald-50 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 bg-emerald-50 rounded-lg">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Nome do Lead *</label>
                       <Input
