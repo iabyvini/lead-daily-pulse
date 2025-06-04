@@ -122,6 +122,33 @@ const Index = () => {
     });
   };
   const onSubmit = async (data: SalesFormData) => {
+    // Validação: verificar se há reuniões na lista com todos os campos preenchidos
+    if (reunioes.length === 0) {
+      toast({
+        title: "❌ Reuniões obrigatórias",
+        description: "Você deve adicionar pelo menos uma reunião com todos os detalhes preenchidos antes de enviar o relatório.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validação adicional: verificar se todas as reuniões têm todos os campos obrigatórios
+    const reunioesIncompletas = reunioes.filter(reuniao => 
+      !reuniao.nomeLead.trim() || 
+      !reuniao.dataAgendamento || 
+      !reuniao.horarioAgendamento || 
+      !reuniao.vendedorResponsavel
+    );
+
+    if (reunioesIncompletas.length > 0) {
+      toast({
+        title: "❌ Reuniões incompletas",
+        description: "Todas as reuniões adicionadas devem ter todos os campos preenchidos (Nome do Lead, Data, Horário e Vendedor Responsável).",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       console.log("Dados do formulário:", data);
