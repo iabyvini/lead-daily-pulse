@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,6 +38,11 @@ interface ReuniaoLead {
 }
 
 const sdrsDisponiveis = [
+  "Nathalia",
+  "Taynara"
+];
+
+const vendedoresResponsaveis = [
   "Jean",
   "Rafaela", 
   "Ricardo",
@@ -409,9 +413,9 @@ const Index = () => {
                           <SelectValue placeholder="Nome" />
                         </SelectTrigger>
                         <SelectContent>
-                          {sdrsDisponiveis.map((sdr) => (
-                            <SelectItem key={sdr} value={sdr}>
-                              {sdr}
+                          {vendedoresResponsaveis.map((vendedor) => (
+                            <SelectItem key={vendedor} value={vendedor}>
+                              {vendedor}
                             </SelectItem>
                           ))}
                         </SelectContent>
