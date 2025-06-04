@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, User, Phone, Calendar as CalendarIcon, Clock, Plus, Trash2 } from "lucide-react";
+import { Loader2, User, Calendar as CalendarIcon, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,10 +22,8 @@ const salesSchema = z.object({
   dataRegistro: z.date({
     required_error: "Data do registro é obrigatória",
   }),
-  contatosFalados: z.number().min(0, "Quantidade deve ser maior ou igual a 0"),
   reunioesAgendadas: z.number().min(0, "Quantidade deve ser maior ou igual a 0"),
   reunioesRealizadas: z.number().min(0, "Quantidade deve ser maior ou igual a 0"),
-  ligacoesRealizadas: z.number().min(0, "Quantidade deve ser maior ou igual a 0"),
 });
 
 type SalesFormData = z.infer<typeof salesSchema>;
@@ -57,10 +56,8 @@ const Index = () => {
     defaultValues: {
       vendedor: "",
       dataRegistro: new Date(),
-      contatosFalados: 0,
       reunioesAgendadas: 0,
       reunioesRealizadas: 0,
-      ligacoesRealizadas: 0,
     },
   });
 
@@ -95,10 +92,8 @@ const Index = () => {
       const reportData = {
         vendedor: data.vendedor,
         dataRegistro: format(data.dataRegistro, 'yyyy-MM-dd'),
-        contatosFalados: data.contatosFalados,
         reunioesAgendadas: data.reunioesAgendadas,
         reunioesRealizadas: data.reunioesRealizadas,
-        ligacoesRealizadas: data.ligacoesRealizadas,
         reunioes: reunioes.map(r => ({
           nomeLead: r.nomeLead,
           dataAgendamento: r.dataAgendamento,
@@ -131,10 +126,8 @@ const Index = () => {
         form.reset({
           vendedor: "",
           dataRegistro: new Date(),
-          contatosFalados: 0,
           reunioesAgendadas: 0,
           reunioesRealizadas: 0,
-          ligacoesRealizadas: 0,
         });
         setReunioes([]);
       } else {
@@ -233,30 +226,7 @@ const Index = () => {
                   )}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="contatosFalados"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-semibold flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          Contatos Falados *
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            className="h-12"
-                            min="0"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
                     name="reunioesAgendadas"
@@ -288,29 +258,6 @@ const Index = () => {
                         <FormLabel className="text-gray-700 font-semibold flex items-center gap-2">
                           <CalendarIcon className="h-4 w-4" />
                           Reuniões Realizadas *
-                        </FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            className="h-12"
-                            min="0"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="ligacoesRealizadas"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-gray-700 font-semibold flex items-center gap-2">
-                          <Phone className="h-4 w-4" />
-                          Ligações Realizadas *
                         </FormLabel>
                         <FormControl>
                           <Input 

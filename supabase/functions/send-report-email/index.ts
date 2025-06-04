@@ -1,5 +1,3 @@
-
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
@@ -13,10 +11,8 @@ const corsHeaders = {
 interface ReportData {
   vendedor: string;
   dataRegistro: string;
-  contatosFalados: number;
   reunioesAgendadas: number;
   reunioesRealizadas: number;
-  ligacoesRealizadas: number;
   reunioes: Array<{
     nomeLead: string;
     dataAgendamento: string;
@@ -48,10 +44,8 @@ serve(async (req) => {
       .insert({
         vendedor: reportData.vendedor,
         data_registro: reportData.dataRegistro,
-        contatos_falados: reportData.contatosFalados,
         reunioes_agendadas: reportData.reunioesAgendadas,
         reunioes_realizadas: reportData.reunioesRealizadas,
-        ligacoes_realizadas: reportData.ligacoesRealizadas,
       })
       .select()
       .single();
@@ -104,10 +98,8 @@ serve(async (req) => {
         <div style="background-color: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="color: #047857; margin-top: 0;">📈 Métricas do Dia</h3>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <p><strong>📞 Contatos Falados:</strong> ${reportData.contatosFalados}</p>
             <p><strong>📅 Reuniões Agendadas:</strong> ${reportData.reunioesAgendadas}</p>
             <p><strong>✅ Reuniões Realizadas:</strong> ${reportData.reunioesRealizadas}</p>
-            <p><strong>📱 Ligações Realizadas:</strong> ${reportData.ligacoesRealizadas}</p>
           </div>
         </div>
 
@@ -167,4 +159,3 @@ serve(async (req) => {
     );
   }
 });
-
