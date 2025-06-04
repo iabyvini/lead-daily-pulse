@@ -65,20 +65,68 @@ const Index = () => {
   });
 
   const adicionarReuniao = () => {
-    if (novaReuniao.nomeLead && novaReuniao.dataAgendamento && novaReuniao.horarioAgendamento && novaReuniao.vendedorResponsavel) {
-      const reuniao: ReuniaoLead = {
-        ...novaReuniao,
-        id: Date.now().toString()
-      };
-      setReunioes([...reunioes, reuniao]);
-      setNovaReuniao({
-        nomeLead: "",
-        dataAgendamento: "",
-        horarioAgendamento: "",
-        status: "Agendado",
-        vendedorResponsavel: ""
+    console.log("Tentando adicionar reunião:", novaReuniao);
+    
+    // Validação mais específica
+    if (!novaReuniao.nomeLead.trim()) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Nome do lead é obrigatório",
+        variant: "destructive",
       });
+      return;
     }
+    
+    if (!novaReuniao.dataAgendamento) {
+      toast({
+        title: "Campo obrigatório", 
+        description: "Data do agendamento é obrigatória",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!novaReuniao.horarioAgendamento) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Horário do agendamento é obrigatório", 
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!novaReuniao.vendedorResponsavel) {
+      toast({
+        title: "Campo obrigatório",
+        description: "Vendedor responsável é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reuniao: ReuniaoLead = {
+      ...novaReuniao,
+      id: Date.now().toString()
+    };
+    
+    console.log("Adicionando reunião:", reuniao);
+    setReunioes(prev => [...prev, reuniao]);
+    
+    // Limpar o formulário
+    setNovaReuniao({
+      nomeLead: "",
+      dataAgendamento: "",
+      horarioAgendamento: "",
+      status: "Agendado",
+      vendedorResponsavel: ""
+    });
+    
+    console.log("Nova reunião limpa");
+    
+    toast({
+      title: "✅ Reunião adicionada",
+      description: "Reunião foi adicionada com sucesso!",
+    });
   };
 
   const removerReuniao = (id: string) => {
