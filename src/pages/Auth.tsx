@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,17 +13,28 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user, loading } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/dashboard');
+    }
+  }, [user, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isLoading) return;
+    
     setIsLoading(true);
 
     try {
       const { error } = await signIn(email, password);
       
       if (error) {
+        console.error('Login error:', error);
         toast({
           title: "❌ Erro no login",
           description: error.message || "Credenciais inválidas",
@@ -34,9 +45,10 @@ const Auth = () => {
           title: "✅ Login realizado com sucesso!",
           description: "Redirecionando para o dashboard...",
         });
-        navigate('/dashboard');
+        // Don't manually navigate here, let the useEffect handle it
       }
     } catch (error: any) {
+      console.error('Unexpected login error:', error);
       toast({
         title: "❌ Erro no login",
         description: error.message || "Erro interno",
@@ -46,6 +58,15 @@ const Auth = () => {
       setIsLoading(false);
     }
   };
+
+  // Show loading while checking auth state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#1bccae]" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center p-4">
@@ -68,6 +89,7 @@ const Auth = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu.email@liguelead.com.br"
                 required
+                disabled={isLoading}
                 className="h-12 border-emerald-200 focus:border-[#1bccae]"
               />
             </div>
@@ -81,6 +103,7 @@ const Auth = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Sua senha"
                 required
+                disabled={isLoading}
                 className="h-12 border-emerald-200 focus:border-[#1bccae]"
               />
             </div>
@@ -105,6 +128,7 @@ const Auth = () => {
             <Button 
               variant="outline" 
               onClick={() => navigate('/')}
+              disabled={isLoading}
               className="text-[#1bccae] border-[#1bccae] hover:bg-emerald-50"
             >
               Voltar ao Relatório

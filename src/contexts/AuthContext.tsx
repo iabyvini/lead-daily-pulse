@@ -29,22 +29,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('AuthProvider: Setting up auth state listener');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('AuthProvider: Auth state changed', { event, session: !!session });
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          console.log('AuthProvider: User authenticated, checking admin status');
           // Check if user is admin
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('is_admin')
-            .eq('id', session.user.id)
-            .single();
-          
-          setIsAdmin(profile?.is_admin || false);
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('is_admin')
+              .eq('id', session.user.id)
+              .single();
+            
+            console.log('AuthProvider: Profile data', profile);
+            setIsAdmin(profile?.is_admin || false);
+          } catch (error) {
+            console.error('AuthProvider: Error checking admin status', error);
+            setIsAdmin(false);
+          }
         } else {
+          console.log('AuthProvider: No user, setting admin to false');
           setIsAdmin(false);
         }
         setLoading(false);
@@ -52,7 +64,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     // Get initial session
+    console.log('AuthProvider: Getting initial session');
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('AuthProvider: Initial session', { session: !!session });
       setSession(session);
       setUser(session?.user ?? null);
       if (!session) {
@@ -60,18 +74,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log('AuthProvider: Cleaning up subscription');
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    console.log('AuthProvider: Attempting sign in for', email);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      console.log('AuthProvider: Sign in result', { error });
+      return { error };
+    } catch (error) {
+      console.error('AuthProvider: Sign in error', error);
+      return { error };
+    }
   };
 
   const signOut = async () => {
+    console.log('AuthProvider: Signing out');
     await supabase.auth.signOut();
   };
 
