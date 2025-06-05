@@ -28,6 +28,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Function to check admin status with error handling and timeout
+  const checkAdminStatus = async (userId: string) => {
+    try {
+      console.log('AuthProvider: Checking admin status for user', userId);
+      
+      // Set a timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 5000)
+      );
+      
+      const queryPromise = supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', userId)
+        .single();
+      
+      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      
+      if (error) {
+        console.error('AuthProvider: Error checking admin status', error);
+        return false;
+      }
+      
+      console.log('AuthProvider: Profile data', profile);
+      return profile?.is_admin || false;
+    } catch (error) {
+      console.error('AuthProvider: Admin check failed', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     console.log('AuthProvider: Setting up auth state listener');
     
@@ -41,24 +72,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user) {
           console.log('AuthProvider: User authenticated, checking admin status');
-          // Check if user is admin
-          try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('is_admin')
-              .eq('id', session.user.id)
-              .single();
-            
-            console.log('AuthProvider: Profile data', profile);
-            setIsAdmin(profile?.is_admin || false);
-          } catch (error) {
-            console.error('AuthProvider: Error checking admin status', error);
-            setIsAdmin(false);
-          }
+          
+          // Use setTimeout to defer the admin check and prevent blocking the auth flow
+          setTimeout(async () => {
+            try {
+              const adminStatus = await checkAdminStatus(session.user.id);
+              setIsAdmin(adminStatus);
+            } catch (error) {
+              console.error('AuthProvider: Failed to check admin status', error);
+              setIsAdmin(false);
+            }
+          }, 0);
         } else {
           console.log('AuthProvider: No user, setting admin to false');
           setIsAdmin(false);
         }
+        
+        // Always set loading to false after processing auth state
         setLoading(false);
       }
     );
@@ -67,11 +97,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthProvider: Getting initial session');
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('AuthProvider: Initial session', { session: !!session });
+      
       setSession(session);
       setUser(session?.user ?? null);
-      if (!session) {
-        setLoading(false);
+      
+      if (session?.user) {
+        // Check admin status for initial session
+        setTimeout(async () => {
+          try {
+            const adminStatus = await checkAdminStatus(session.user.id);
+            setIsAdmin(adminStatus);
+          } catch (error) {
+            console.error('AuthProvider: Failed to check initial admin status', error);
+            setIsAdmin(false);
+          }
+        }, 0);
       }
+      
+      // Set loading to false even if no session
+      setLoading(false);
+    }).catch((error) => {
+      console.error('AuthProvider: Error getting initial session', error);
+      setLoading(false);
     });
 
     return () => {
@@ -98,6 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     console.log('AuthProvider: Signing out');
     await supabase.auth.signOut();
+    setIsAdmin(false);
   };
 
   const value = {

@@ -18,37 +18,56 @@ const Auth = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
+    console.log('Auth: useEffect triggered', { loading, user: !!user });
+    
     if (!loading && user) {
+      console.log('Auth: Redirecting authenticated user to dashboard');
       navigate('/dashboard');
     }
   }, [user, loading, navigate]);
 
+  // Add a timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn('Auth: Loading timeout reached, forcing loading to false');
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isLoading) return;
+    if (isLoading) {
+      console.log('Auth: Submit blocked - already loading');
+      return;
+    }
     
+    console.log('Auth: Starting login process');
     setIsLoading(true);
 
     try {
       const { error } = await signIn(email, password);
       
       if (error) {
-        console.error('Login error:', error);
+        console.error('Auth: Login error:', error);
         toast({
           title: "❌ Erro no login",
           description: error.message || "Credenciais inválidas",
           variant: "destructive",
         });
       } else {
+        console.log('Auth: Login successful');
         toast({
           title: "✅ Login realizado com sucesso!",
           description: "Redirecionando para o dashboard...",
         });
-        // Don't manually navigate here, let the useEffect handle it
+        // Navigation will be handled by the useEffect above
       }
     } catch (error: any) {
-      console.error('Unexpected login error:', error);
+      console.error('Auth: Unexpected login error:', error);
       toast({
         title: "❌ Erro no login",
         description: error.message || "Erro interno",
@@ -59,14 +78,20 @@ const Auth = () => {
     }
   };
 
-  // Show loading while checking auth state
+  // Show loading while checking auth state, but with a maximum time
   if (loading) {
+    console.log('Auth: Showing loading state');
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1bccae]" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1bccae] mx-auto mb-4" />
+          <p className="text-gray-600">Verificando autenticação...</p>
+        </div>
       </div>
     );
   }
+
+  console.log('Auth: Rendering login form');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center p-4">
