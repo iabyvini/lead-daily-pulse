@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Send, BarChart3, Users, Settings } from 'lucide-react';
+import { Loader2, Send, Users } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ const Index = () => {
       dataAgendamento: string;
       horarioAgendamento: string;
       status: string;
+      nomeVendedor: string;
     }>
   });
 
@@ -49,7 +51,8 @@ const Index = () => {
         nomeLead: '',
         dataAgendamento: '',
         horarioAgendamento: '',
-        status: 'Agendado'
+        status: 'Agendado',
+        nomeVendedor: ''
       }]
     }));
   };
@@ -169,22 +172,6 @@ const Index = () => {
               <Users className="h-4 w-4 mr-2" />
               Relatórios SDR
             </Button>
-            <Button 
-              onClick={() => navigate('/dashboard')}
-              variant="outline"
-              className="border-[#1bccae] text-[#1bccae] hover:bg-emerald-50"
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Dashboard Completo
-            </Button>
-            <Button 
-              onClick={() => navigate('/auth')}
-              variant="outline"
-              className="border-gray-500 text-gray-700 hover:bg-gray-50"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Acesso Admin
-            </Button>
           </div>
         </div>
 
@@ -200,16 +187,17 @@ const Index = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="vendedor" className="text-gray-700 font-semibold">
-                    Nome do Vendedor (SDR) *
+                    Nome do SDR *
                   </Label>
-                  <Input
-                    id="vendedor"
-                    value={formData.vendedor}
-                    onChange={(e) => setFormData(prev => ({ ...prev, vendedor: e.target.value }))}
-                    placeholder="Digite seu nome completo"
-                    required
-                    className="h-12 border-emerald-200 focus:border-[#1bccae]"
-                  />
+                  <Select value={formData.vendedor} onValueChange={(value) => setFormData(prev => ({ ...prev, vendedor: value }))}>
+                    <SelectTrigger className="h-12 border-emerald-200 focus:border-[#1bccae]">
+                      <SelectValue placeholder="Selecione um SDR" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Nathalia">Nathalia</SelectItem>
+                      <SelectItem value="Taynara">Taynara</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 
                 <div>
@@ -306,6 +294,26 @@ const Index = () => {
                         </div>
                         
                         <div>
+                          <Label className="text-sm text-gray-600">Nome Vendedor</Label>
+                          <Select value={reuniao.nomeVendedor} onValueChange={(value) => updateReuniao(index, 'nomeVendedor', value)}>
+                            <SelectTrigger className="border-emerald-200 focus:border-[#1bccae]">
+                              <SelectValue placeholder="Selecione um vendedor" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Jean">Jean</SelectItem>
+                              <SelectItem value="Rafaela">Rafaela</SelectItem>
+                              <SelectItem value="Ricardo">Ricardo</SelectItem>
+                              <SelectItem value="Lara">Lara</SelectItem>
+                              <SelectItem value="Cris">Cris</SelectItem>
+                              <SelectItem value="Guilherme">Guilherme</SelectItem>
+                              <SelectItem value="Yago">Yago</SelectItem>
+                              <SelectItem value="Lorena">Lorena</SelectItem>
+                              <SelectItem value="André">André</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div>
                           <Label className="text-sm text-gray-600">Data do Agendamento</Label>
                           <Input
                             type="date"
@@ -325,7 +333,7 @@ const Index = () => {
                           />
                         </div>
                         
-                        <div>
+                        <div className="md:col-span-2">
                           <Label className="text-sm text-gray-600">Status</Label>
                           <Select value={reuniao.status} onValueChange={(value) => updateReuniao(index, 'status', value)}>
                             <SelectTrigger className="border-emerald-200 focus:border-[#1bccae]">
