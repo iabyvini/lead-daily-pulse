@@ -152,6 +152,13 @@ const Index = () => {
       console.log("Dados do formulário:", data);
       console.log("Reuniões:", reunioes);
       
+      // Get the current session for authentication
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('Você precisa estar logado para enviar relatórios');
+      }
+      
       // Prepare data for the edge function
       const reportData = {
         vendedor: data.vendedor,
@@ -169,9 +176,12 @@ const Index = () => {
 
       console.log("Enviando dados para a função edge:", reportData);
 
-      // Call the edge function to save data and send email
+      // Call the edge function to save data and send email with authentication
       const { data: result, error } = await supabase.functions.invoke('send-report-email', {
-        body: reportData
+        body: reportData,
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
       });
 
       if (error) {
@@ -184,7 +194,9 @@ const Index = () => {
       if (result.success) {
         toast({
           title: "✅ Relatório enviado com sucesso!",
-          description: "Seus dados foram salvos no banco e o e-mail foi enviado para a gerência.",
+          description: result.emailError ? 
+            "Seus dados foram salvos no banco, mas houve um problema ao enviar o e-mail." :
+            "Seus dados foram salvos no banco e o e-mail foi enviado para a gerência.",
         });
         
         // Reset do formulário
@@ -201,11 +213,21 @@ const Index = () => {
       
     } catch (error: any) {
       console.error("Erro ao enviar dados:", error);
-      toast({
-        title: "❌ Erro ao enviar",
-        description: error.message || "Ocorreu um erro. Tente novamente.",
-        variant: "destructive",
-      });
+      
+      // Show specific error messages for authentication issues
+      if (error.message?.includes('logado') || error.message?.includes('Unauthorized')) {
+        toast({
+          title: "❌ Acesso negado",
+          description: "Você precisa estar logado para enviar relatórios. Clique em 'Acessar Relatórios' para fazer login.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "❌ Erro ao enviar",
+          description: error.message || "Ocorreu um erro. Tente novamente.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
