@@ -9,6 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, LogOut, BarChart3, Users, Calendar, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
+import { DashboardFilters, FilterState } from '@/components/dashboard/DashboardFilters';
 
 interface DailyReport {
   id: string;
@@ -32,6 +34,8 @@ const Dashboard = () => {
   const { user, isAdmin, signOut, loading } = useAuth();
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [meetings, setMeetings] = useState<MeetingDetail[]>([]);
+  const [filteredReports, setFilteredReports] = useState<DailyReport[]>([]);
+  const [filteredMeetings, setFilteredMeetings] = useState<MeetingDetail[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const navigate = useNavigate();
 
@@ -65,8 +69,13 @@ const Dashboard = () => {
 
       if (meetingsError) throw meetingsError;
 
-      setReports(reportsData || []);
-      setMeetings(meetingsData || []);
+      const reportsWithData = reportsData || [];
+      const meetingsWithData = meetingsData || [];
+
+      setReports(reportsWithData);
+      setMeetings(meetingsWithData);
+      setFilteredReports(reportsWithData);
+      setFilteredMeetings(meetingsWithData);
     } catch (error: any) {
       toast({
         title: "❌ Erro ao carregar dados",
@@ -78,15 +87,56 @@ const Dashboard = () => {
     }
   };
 
+  const handleFiltersChange = (filters: FilterState) => {
+    let filteredReportsData = [...reports];
+    let filteredMeetingsData = [...meetings];
+
+    // Filter by vendor
+    if (filters.vendedor) {
+      filteredReportsData = filteredReportsData.filter(
+        report => report.vendedor === filters.vendedor
+      );
+      filteredMeetingsData = filteredMeetingsData.filter(
+        meeting => meeting.vendedor_responsavel === filters.vendedor
+      );
+    }
+
+    // Filter by date range
+    if (filters.startDate) {
+      const startDate = new Date(filters.startDate);
+      startDate.setHours(0, 0, 0, 0);
+      filteredReportsData = filteredReportsData.filter(
+        report => new Date(report.data_registro) >= startDate
+      );
+      filteredMeetingsData = filteredMeetingsData.filter(
+        meeting => new Date(meeting.data_agendamento) >= startDate
+      );
+    }
+
+    if (filters.endDate) {
+      const endDate = new Date(filters.endDate);
+      endDate.setHours(23, 59, 59, 999);
+      filteredReportsData = filteredReportsData.filter(
+        report => new Date(report.data_registro) <= endDate
+      );
+      filteredMeetingsData = filteredMeetingsData.filter(
+        meeting => new Date(meeting.data_agendamento) <= endDate
+      );
+    }
+
+    setFilteredReports(filteredReportsData);
+    setFilteredMeetings(filteredMeetingsData);
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
   };
 
   const calculateTotals = () => {
-    const totalAgendadas = reports.reduce((sum, report) => sum + report.reunioes_agendadas, 0);
-    const totalRealizadas = reports.reduce((sum, report) => sum + report.reunioes_realizadas, 0);
-    const totalSDRs = new Set(reports.map(report => report.vendedor)).size;
+    const totalAgendadas = filteredReports.reduce((sum, report) => sum + report.reunioes_agendadas, 0);
+    const totalRealizadas = filteredReports.reduce((sum, report) => sum + report.reunioes_realizadas, 0);
+    const totalSDRs = new Set(filteredReports.map(report => report.vendedor)).size;
     
     return { totalAgendadas, totalRealizadas, totalSDRs };
   };
@@ -131,6 +181,9 @@ const Dashboard = () => {
             </Button>
           </div>
         </div>
+
+        {/* Filters */}
+        <DashboardFilters reports={reports} onFiltersChange={handleFiltersChange} />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -185,6 +238,9 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Charts */}
+        <DashboardCharts reports={filteredReports} />
+
         {/* Reports Table */}
         <Card className="mb-8 border-emerald-200">
           <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white">
@@ -202,7 +258,7 @@ const Dashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reports.map((report) => (
+                {filteredReports.map((report) => (
                   <TableRow key={report.id}>
                     <TableCell className="font-medium">{report.vendedor}</TableCell>
                     <TableCell>{format(new Date(report.data_registro), 'dd/MM/yyyy')}</TableCell>
@@ -233,7 +289,7 @@ const Dashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {meetings.map((meeting) => (
+                {filteredMeetings.map((meeting) => (
                   <TableRow key={meeting.id}>
                     <TableCell className="font-medium">{meeting.nome_lead}</TableCell>
                     <TableCell>{format(new Date(meeting.data_agendamento), 'dd/MM/yyyy')}</TableCell>
