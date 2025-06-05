@@ -88,45 +88,61 @@ const Index = () => {
     setIsLoading(true);
 
     try {
-      // Insert daily report
-      const { data: reportData, error: reportError } = await supabase
-        .from('daily_reports')
-        .insert({
-          vendedor: formData.vendedor,
-          data_registro: formData.dataRegistro,
-          reunioes_agendadas: parseInt(formData.reunioesAgendadas),
-          reunioes_realizadas: parseInt(formData.reunioesRealizadas),
-        })
-        .select()
-        .single();
+      // Get current user session for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "❌ Erro de autenticação",
+          description: "Você precisa estar logado para enviar relatórios.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
 
-      if (reportError) throw reportError;
-
-      // Insert meeting details if any
-      if (formData.reunioes.length > 0) {
-        const meetingDetails = formData.reunioes
+      // Prepare data for the email function
+      const emailData = {
+        vendedor: formData.vendedor,
+        dataRegistro: formData.dataRegistro,
+        reunioesAgendadas: parseInt(formData.reunioesAgendadas),
+        reunioesRealizadas: parseInt(formData.reunioesRealizadas),
+        reunioes: formData.reunioes
           .filter(reuniao => reuniao.nomeLead && reuniao.dataAgendamento && reuniao.horarioAgendamento)
           .map(reuniao => ({
-            nome_lead: reuniao.nomeLead,
-            data_agendamento: reuniao.dataAgendamento,
-            horario_agendamento: reuniao.horarioAgendamento,
+            nomeLead: reuniao.nomeLead,
+            dataAgendamento: reuniao.dataAgendamento,
+            horarioAgendamento: reuniao.horarioAgendamento,
             status: reuniao.status,
-            vendedor_responsavel: formData.vendedor,
-            report_id: reportData.id
-          }));
+            vendedorResponsavel: reuniao.nomeVendedor
+          }))
+      };
 
-        if (meetingDetails.length > 0) {
-          const { error: meetingError } = await supabase
-            .from('meeting_details')
-            .insert(meetingDetails);
+      console.log('Enviando dados para função de email:', emailData);
 
-          if (meetingError) throw meetingError;
-        }
+      // Call the send-report-email function
+      const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-report-email', {
+        body: emailData,
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      console.log('Resultado da função de email:', emailResult);
+
+      if (emailError) {
+        console.error('Erro na função de email:', emailError);
+        throw new Error(`Erro ao enviar email: ${emailError.message}`);
+      }
+
+      if (!emailResult?.success) {
+        console.error('Função retornou erro:', emailResult?.error);
+        throw new Error(emailResult?.error || 'Erro desconhecido ao enviar email');
       }
 
       toast({
         title: "✅ Relatório enviado com sucesso!",
-        description: "Seu relatório diário foi registrado no sistema.",
+        description: "Seu relatório foi salvo no sistema e enviado por email.",
       });
 
       // Reset form
