@@ -7,31 +7,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Lock, Shield } from 'lucide-react';
+import { Loader2, Lock } from 'lucide-react';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, user, loading, isAdmin } = useAuth();
+  const { signIn, user, loading } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already authenticated and is admin
+  // Redirect if already authenticated
   useEffect(() => {
-    console.log('Auth: useEffect triggered', { loading, user: !!user, isAdmin });
+    console.log('Auth: useEffect triggered', { loading, user: !!user });
     
-    if (!loading && user && isAdmin) {
-      console.log('Auth: Redirecting authenticated admin user to dashboard');
+    if (!loading && user) {
+      console.log('Auth: Redirecting authenticated user to dashboard');
       navigate('/dashboard');
-    } else if (!loading && user && !isAdmin) {
-      console.log('Auth: User is not admin, showing access denied');
-      toast({
-        title: "❌ Acesso Negado",
-        description: "Você não tem permissão de administrador",
-        variant: "destructive",
-      });
     }
-  }, [user, loading, isAdmin, navigate]);
+  }, [user, loading, navigate]);
 
   // Add a timeout to prevent infinite loading
   useEffect(() => {
@@ -52,7 +45,7 @@ const Auth = () => {
       return;
     }
     
-    console.log('Auth: Starting admin login process');
+    console.log('Auth: Starting login process');
     setIsLoading(true);
 
     try {
@@ -60,26 +53,16 @@ const Auth = () => {
       
       if (error) {
         console.error('Auth: Login error:', error);
-        
-        // Verificar se é o caso específico das credenciais do administrador
-        if (email === 'viniciusrodrigues@liguelead.com.br' && password === 'liguelead1') {
-          toast({
-            title: "❌ Usuário administrador não encontrado",
-            description: "Por favor, registre-se primeiro com essas credenciais através do sistema de signup.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "❌ Erro no login",
-            description: error.message || "Credenciais inválidas",
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: "❌ Erro no login",
+          description: error.message || "Credenciais inválidas",
+          variant: "destructive",
+        });
       } else {
         console.log('Auth: Login successful');
         toast({
           title: "✅ Login realizado com sucesso!",
-          description: "Verificando permissões de administrador...",
+          description: "Redirecionando para o dashboard...",
         });
         // Navigation will be handled by the useEffect above
       }
@@ -95,12 +78,6 @@ const Auth = () => {
     }
   };
 
-  // Pré-preencher campos para facilitar o acesso do administrador
-  useEffect(() => {
-    setEmail('viniciusrodrigues@liguelead.com.br');
-    setPassword('liguelead1');
-  }, []);
-
   // Show loading while checking auth state, but with a maximum time
   if (loading) {
     console.log('Auth: Showing loading state');
@@ -114,25 +91,19 @@ const Auth = () => {
     );
   }
 
-  console.log('Auth: Rendering admin login form');
+  console.log('Auth: Rendering login form');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center p-4">
       <Card className="w-full max-w-md shadow-xl border-emerald-200">
-        <CardHeader className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg">
+        <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white rounded-t-lg">
           <CardTitle className="text-center text-2xl font-bold flex items-center justify-center gap-2">
-            <Shield className="h-6 w-6" />
-            Acesso Administrador
+            <Lock className="h-6 w-6" />
+            Acesso ao Dashboard
           </CardTitle>
         </CardHeader>
         
         <CardContent className="p-6">
-          <div className="mb-4 text-center">
-            <p className="text-sm text-gray-600">
-              Área restrita para administradores do sistema
-            </p>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Label htmlFor="email" className="text-gray-700 font-semibold">E-mail</Label>
@@ -164,19 +135,16 @@ const Auth = () => {
             
             <Button 
               type="submit" 
-              className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-semibold"
+              className="w-full h-12 bg-[#1bccae] hover:bg-emerald-600 text-white font-semibold"
               disabled={isLoading}
             >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Verificando...
+                  Entrando...
                 </>
               ) : (
-                <>
-                  <Shield className="mr-2 h-5 w-5" />
-                  Entrar como Administrador
-                </>
+                "Entrar no Dashboard"
               )}
             </Button>
           </form>
