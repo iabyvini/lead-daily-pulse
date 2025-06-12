@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
-import { Calendar, CheckCircle, BarChart3, Users, RefreshCw } from 'lucide-react';
+import { Users, RefreshCw } from 'lucide-react';
 import { SDRSelector } from './SDRSelector';
+import { SDRSummaryCards } from './SDRSummaryCards';
+import { SDRReportsTable } from './SDRReportsTable';
+import { SDRMeetingsTable } from './SDRMeetingsTable';
 import { useToast } from '@/hooks/use-toast';
 
 interface DailyReport {
@@ -160,57 +160,11 @@ export const SDRDashboard: React.FC = () => {
       ) : (
         <>
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card className="border-emerald-200">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-8 w-8 text-[#1bccae]" />
-                  <div>
-                    <p className="text-sm text-gray-600">Reuniões Agendadas</p>
-                    <p className="text-2xl font-bold text-gray-800">{totalAgendadas}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-emerald-200">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-8 w-8 text-[#1bccae]" />
-                  <div>
-                    <p className="text-sm text-gray-600">Reuniões Realizadas</p>
-                    <p className="text-2xl font-bold text-gray-800">{totalRealizadas}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-emerald-200">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <BarChart3 className="h-8 w-8 text-[#1bccae]" />
-                  <div>
-                    <p className="text-sm text-gray-600">Taxa de Conversão</p>
-                    <p className="text-2xl font-bold text-gray-800">
-                      {totalAgendadas > 0 ? Math.round((totalRealizadas / totalAgendadas) * 100) : 0}%
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-emerald-200">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-8 w-8 text-[#1bccae]" />
-                  <div>
-                    <p className="text-sm text-gray-600">Dias Trabalhados</p>
-                    <p className="text-2xl font-bold text-gray-800">{totalDias}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <SDRSummaryCards 
+            totalAgendadas={totalAgendadas}
+            totalRealizadas={totalRealizadas}
+            totalDias={totalDias}
+          />
 
           {/* Tabs for different views */}
           <Tabs defaultValue="reports" className="w-full">
@@ -220,85 +174,11 @@ export const SDRDashboard: React.FC = () => {
             </TabsList>
 
             <TabsContent value="reports" className="space-y-4">
-              <Card className="border-emerald-200">
-                <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white">
-                  <CardTitle>Seus Relatórios Diários</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-emerald-50">
-                        <TableHead>Data</TableHead>
-                        <TableHead>Reuniões Agendadas</TableHead>
-                        <TableHead>Reuniões Realizadas</TableHead>
-                        <TableHead>Data de Envio</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {reports.map((report) => (
-                        <TableRow key={report.id}>
-                          <TableCell>{format(new Date(report.data_registro), 'dd/MM/yyyy')}</TableCell>
-                          <TableCell>{report.reunioes_agendadas}</TableCell>
-                          <TableCell>{report.reunioes_realizadas}</TableCell>
-                          <TableCell>{format(new Date(report.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
-                        </TableRow>
-                      ))}
-                      {reports.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                            Nenhum relatório encontrado
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+              <SDRReportsTable reports={reports} />
             </TabsContent>
 
             <TabsContent value="meetings" className="space-y-4">
-              <Card className="border-emerald-200">
-                <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white">
-                  <CardTitle>Suas Reuniões</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-emerald-50">
-                        <TableHead>Lead</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Horário</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {meetings.map((meeting) => (
-                        <TableRow key={meeting.id}>
-                          <TableCell className="font-medium">{meeting.nome_lead}</TableCell>
-                          <TableCell>{format(new Date(meeting.data_agendamento), 'dd/MM/yyyy')}</TableCell>
-                          <TableCell>{meeting.horario_agendamento}</TableCell>
-                          <TableCell>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              meeting.status === 'Realizado' ? 'bg-emerald-100 text-emerald-800' :
-                              meeting.status === 'Agendado' ? 'bg-blue-100 text-blue-800' :
-                              'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {meeting.status}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {meetings.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-gray-500">
-                            Nenhuma reunião encontrada
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+              <SDRMeetingsTable meetings={meetings} />
             </TabsContent>
           </Tabs>
         </>
