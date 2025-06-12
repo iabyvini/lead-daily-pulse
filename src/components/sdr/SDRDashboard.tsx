@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, RefreshCw } from 'lucide-react';
+import { Users, RefreshCw, Plus } from 'lucide-react';
 import { SDRSelector } from './SDRSelector';
 import { SDRSummaryCards } from './SDRSummaryCards';
 import { SDRReportsTable } from './SDRReportsTable';
 import { SDRMeetingsTable } from './SDRMeetingsTable';
+import { SDRReportForm } from './SDRReportForm';
 import { useToast } from '@/hooks/use-toast';
 
 interface DailyReport {
@@ -105,6 +106,12 @@ export const SDRDashboard: React.FC = () => {
     }
   };
 
+  const handleReportSubmitted = () => {
+    if (selectedSDR) {
+      fetchSDRData(selectedSDR, true);
+    }
+  };
+
   const calculateTotals = () => {
     const totalAgendadas = reports.reduce((sum, report) => sum + report.reunioes_agendadas, 0);
     const totalRealizadas = reports.reduce((sum, report) => sum + report.reunioes_realizadas, 0);
@@ -167,11 +174,16 @@ export const SDRDashboard: React.FC = () => {
           />
 
           {/* Tabs for different views */}
-          <Tabs defaultValue="reports" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+          <Tabs defaultValue="new-report" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="new-report">Novo Relatório</TabsTrigger>
               <TabsTrigger value="reports">Relatórios Diários</TabsTrigger>
               <TabsTrigger value="meetings">Detalhes das Reuniões</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="new-report" className="space-y-4">
+              <SDRReportForm vendedor={selectedSDR} onReportSubmitted={handleReportSubmitted} />
+            </TabsContent>
 
             <TabsContent value="reports" className="space-y-4">
               <SDRReportsTable reports={reports} />

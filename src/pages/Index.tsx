@@ -1,18 +1,15 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { LogOut, Shield, Users, BarChart3 } from 'lucide-react';
+import { LogOut, Shield, Users } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
 
   const handleAdminAccess = () => {
     navigate('/auth');
-  };
-
-  const handleSDRDashboard = () => {
-    navigate('/sdr-dashboard');
   };
 
   return (
@@ -47,16 +44,6 @@ const Index = () => {
             >
               <Users className="mr-2 h-6 w-6" />
               Ver Relatórios SDR
-            </Button>
-            
-            <Button 
-              onClick={handleSDRDashboard}
-              size="lg" 
-              variant="outline"
-              className="border-[#1bccae] text-[#1bccae] hover:bg-emerald-50 px-8 py-6 text-lg"
-            >
-              <BarChart3 className="mr-2 h-6 w-6" />
-              Dashboard SDR
             </Button>
             
             <Button 
