@@ -3,10 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { Calendar, CheckCircle, BarChart3, Users } from 'lucide-react';
+import { Calendar, CheckCircle, BarChart3, Users, RefreshCw } from 'lucide-react';
 import { SDRSelector } from './SDRSelector';
+import { useToast } from '@/hooks/use-toast';
 
 interface DailyReport {
   id: string;
@@ -31,6 +33,8 @@ export const SDRDashboard: React.FC = () => {
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [meetings, setMeetings] = useState<MeetingDetail[]>([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (selectedSDR) {
@@ -38,17 +42,28 @@ export const SDRDashboard: React.FC = () => {
     }
   }, [selectedSDR]);
 
-  const fetchSDRData = async (sdrName: string) => {
+  const fetchSDRData = async (sdrName: string, showRefreshMessage = false) => {
     setLoading(true);
+    if (showRefreshMessage) {
+      setRefreshing(true);
+    }
+    
     try {
-      // Fetch reports for the selected SDR
+      console.log('Fetching data for SDR:', sdrName);
+      
+      // Fetch reports for the selected SDR with no cache
       const { data: reportsData, error: reportsError } = await supabase
         .from('daily_reports')
         .select('*')
         .eq('vendedor', sdrName)
         .order('data_registro', { ascending: false });
 
-      if (reportsError) throw reportsError;
+      if (reportsError) {
+        console.error('Error fetching reports:', reportsError);
+        throw reportsError;
+      }
+
+      console.log('Reports data fetched:', reportsData);
 
       // Fetch meetings for the selected SDR
       const { data: meetingsData, error: meetingsError } = await supabase
@@ -57,14 +72,36 @@ export const SDRDashboard: React.FC = () => {
         .eq('vendedor_responsavel', sdrName)
         .order('data_agendamento', { ascending: false });
 
-      if (meetingsError) throw meetingsError;
+      if (meetingsError) {
+        console.error('Error fetching meetings:', meetingsError);
+        throw meetingsError;
+      }
 
       setReports(reportsData || []);
       setMeetings(meetingsData || []);
+      
+      if (showRefreshMessage) {
+        toast({
+          title: "Dados atualizados",
+          description: "Os relatórios foram atualizados com sucesso.",
+        });
+      }
     } catch (error) {
       console.error('Error fetching SDR data:', error);
+      toast({
+        title: "Erro ao carregar dados",
+        description: "Ocorreu um erro ao carregar os dados do SDR.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    if (selectedSDR) {
+      fetchSDRData(selectedSDR, true);
     }
   };
 
@@ -93,7 +130,7 @@ export const SDRDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with SDR selector */}
+      {/* Header with SDR selector and refresh button */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
@@ -102,7 +139,18 @@ export const SDRDashboard: React.FC = () => {
           </h2>
           <p className="text-gray-600">Acompanhe seu desempenho e histórico de atividades</p>
         </div>
-        <SDRSelector onSDRSelect={setSelectedSDR} selectedSDR={selectedSDR} />
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="border-[#1bccae] text-[#1bccae] hover:bg-emerald-50"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
+          <SDRSelector onSDRSelect={setSelectedSDR} selectedSDR={selectedSDR} />
+        </div>
       </div>
 
       {loading ? (
