@@ -22,7 +22,7 @@ export interface FilterState {
 
 export const DashboardFilters = ({ reports, onFiltersChange }: DashboardFiltersProps) => {
   const [filters, setFilters] = React.useState<FilterState>({
-    vendedor: '',
+    vendedor: 'all',
     startDate: undefined,
     endDate: undefined,
   });
@@ -41,7 +41,7 @@ export const DashboardFilters = ({ reports, onFiltersChange }: DashboardFiltersP
 
   const clearFilters = () => {
     const clearedFilters: FilterState = {
-      vendedor: '',
+      vendedor: 'all',
       startDate: undefined,
       endDate: undefined,
     };
@@ -49,7 +49,7 @@ export const DashboardFilters = ({ reports, onFiltersChange }: DashboardFiltersP
     onFiltersChange(clearedFilters);
   };
 
-  const hasActiveFilters = filters.vendedor || filters.startDate || filters.endDate;
+  const hasActiveFilters = filters.vendedor !== 'all' || filters.startDate || filters.endDate;
 
   return (
     <Card className="border-emerald-200 mb-6">
@@ -69,7 +69,7 @@ export const DashboardFilters = ({ reports, onFiltersChange }: DashboardFiltersP
                 <SelectValue placeholder="Todos os SDRs" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os SDRs</SelectItem>
+                <SelectItem value="all">Todos os SDRs</SelectItem>
                 {vendors.map((vendor) => (
                   <SelectItem key={vendor} value={vendor}>
                     {vendor}
@@ -159,11 +159,11 @@ export const DashboardFilters = ({ reports, onFiltersChange }: DashboardFiltersP
         {hasActiveFilters && (
           <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="flex flex-wrap gap-2">
-              {filters.vendedor && (
+              {filters.vendedor !== 'all' && (
                 <div className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm flex items-center gap-2">
                   SDR: {filters.vendedor}
                   <button
-                    onClick={() => updateFilters({ vendedor: '' })}
+                    onClick={() => updateFilters({ vendedor: 'all' })}
                     className="hover:bg-emerald-200 rounded-full p-1"
                   >
                     <X className="h-3 w-3" />
