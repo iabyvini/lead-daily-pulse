@@ -86,47 +86,12 @@ serve(async (req) => {
   }
 
   try {
-    // Get authorization header
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      console.error('No authorization header provided');
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Unauthorized: No authorization header' 
-        }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Initialize Supabase client
+    // Initialize Supabase client with service role
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      console.error('Authentication failed:', authError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Unauthorized: Invalid token' 
-        }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    console.log('Authenticated user:', user.email);
+    console.log('Processing report submission without authentication');
 
     // Parse and validate request data
     const reportData: ReportData = await req.json();
@@ -148,7 +113,7 @@ serve(async (req) => {
       );
     }
 
-    // Save report to database with authenticated context
+    // Save report to database using service role (bypasses RLS)
     const { data: reportRecord, error: reportError } = await supabase
       .from('daily_reports')
       .insert({
@@ -214,7 +179,7 @@ serve(async (req) => {
           <h3 style="color: #047857; margin-top: 0;">Informações Gerais</h3>
           <p><strong>SDR:</strong> ${reportData.vendedor.trim()}</p>
           <p><strong>Data:</strong> ${new Date(reportData.dataRegistro).toLocaleDateString('pt-BR')}</p>
-          <p><strong>Enviado por:</strong> ${user.email}</p>
+          <p><strong>Enviado via:</strong> Sistema LigueLead</p>
         </div>
 
         <div style="background-color: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0;">

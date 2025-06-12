@@ -88,19 +88,6 @@ const Index = () => {
     setIsLoading(true);
 
     try {
-      // Get current user session for authentication
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast({
-          title: "❌ Erro de autenticação",
-          description: "Você precisa estar logado para enviar relatórios.",
-          variant: "destructive",
-        });
-        setIsLoading(false);
-        return;
-      }
-
       // Prepare data for the email function
       const emailData = {
         vendedor: formData.vendedor,
@@ -120,12 +107,9 @@ const Index = () => {
 
       console.log('Enviando dados para função de email:', emailData);
 
-      // Call the send-report-email function
+      // Call the send-report-email function without authentication
       const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-report-email', {
-        body: emailData,
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        body: emailData
       });
 
       console.log('Resultado da função de email:', emailResult);
@@ -186,7 +170,13 @@ const Index = () => {
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Users className="h-4 w-4 mr-2" />
-              Relatórios SDR
+              Ver Relatórios SDR
+            </Button>
+            <Button 
+              onClick={() => navigate('/auth')}
+              className="bg-gray-600 hover:bg-gray-700 text-white"
+            >
+              Acesso Administrador
             </Button>
           </div>
         </div>
