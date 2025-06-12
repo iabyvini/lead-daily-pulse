@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,10 +6,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, LogOut, BarChart3, Users, Calendar, CheckCircle } from 'lucide-react';
+import { Loader2, LogOut, BarChart3, Users, Calendar, CheckCircle, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
 import { DashboardFilters, FilterState } from '@/components/dashboard/DashboardFilters';
+import { AdminReportsTable } from '@/components/admin/AdminReportsTable';
 
 interface DailyReport {
   id: string;
@@ -38,6 +38,7 @@ const Dashboard = () => {
   const [filteredMeetings, setFilteredMeetings] = useState<MeetingDetail[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const navigate = useNavigate();
+  const [adminMode, setAdminMode] = useState(false);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -141,6 +142,10 @@ const Dashboard = () => {
     return { totalAgendadas, totalRealizadas, totalSDRs };
   };
 
+  const toggleAdminMode = () => {
+    setAdminMode(!adminMode);
+  };
+
   if (loading || isLoadingData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center">
@@ -160,10 +165,21 @@ const Dashboard = () => {
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
               <BarChart3 className="h-8 w-8 text-[#1bccae]" />
               Dashboard de Relatórios
+              {adminMode && <span className="text-sm bg-red-100 text-red-800 px-2 py-1 rounded">ADMIN</span>}
             </h1>
             <p className="text-gray-600 mt-1">Bem-vindo, {user?.email}</p>
           </div>
           <div className="flex gap-2">
+            {isAdmin && (
+              <Button 
+                variant={adminMode ? "destructive" : "outline"}
+                onClick={toggleAdminMode}
+                className={adminMode ? "" : "border-orange-500 text-orange-500 hover:bg-orange-50"}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                {adminMode ? "Sair do Modo Admin" : "Modo Administrador"}
+              </Button>
+            )}
             <Button 
               variant="outline" 
               onClick={() => navigate('/')}
@@ -242,35 +258,42 @@ const Dashboard = () => {
         <DashboardCharts reports={filteredReports} />
 
         {/* Reports Table */}
-        <Card className="mb-8 border-emerald-200">
-          <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white">
-            <CardTitle>Relatórios Diários</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-emerald-50">
-                  <TableHead>SDR</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Reuniões Agendadas</TableHead>
-                  <TableHead>Reuniões Realizadas</TableHead>
-                  <TableHead>Data de Envio</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReports.map((report) => (
-                  <TableRow key={report.id}>
-                    <TableCell className="font-medium">{report.vendedor}</TableCell>
-                    <TableCell>{format(new Date(report.data_registro), 'dd/MM/yyyy')}</TableCell>
-                    <TableCell>{report.reunioes_agendadas}</TableCell>
-                    <TableCell>{report.reunioes_realizadas}</TableCell>
-                    <TableCell>{format(new Date(report.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
+        {adminMode ? (
+          <AdminReportsTable 
+            reports={filteredReports} 
+            onReportUpdated={fetchData}
+          />
+        ) : (
+          <Card className="mb-8 border-emerald-200">
+            <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white">
+              <CardTitle>Relatórios Diários</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-emerald-50">
+                    <TableHead>SDR</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Reuniões Agendadas</TableHead>
+                    <TableHead>Reuniões Realizadas</TableHead>
+                    <TableHead>Data de Envio</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                </TableHeader>
+                <TableBody>
+                  {filteredReports.map((report) => (
+                    <TableRow key={report.id}>
+                      <TableCell className="font-medium">{report.vendedor}</TableCell>
+                      <TableCell>{format(new Date(report.data_registro), 'dd/MM/yyyy')}</TableCell>
+                      <TableCell>{report.reunioes_agendadas}</TableCell>
+                      <TableCell>{report.reunioes_realizadas}</TableCell>
+                      <TableCell>{format(new Date(report.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Meetings Table */}
         <Card className="border-emerald-200">
