@@ -13,18 +13,18 @@ const AIAccess = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, user, loading, isAI } = useAuth();
+  const { signIn, user, loading, isAI, accessLevelLoading } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already authenticated as AI
   useEffect(() => {
-    console.log('AIAccess: useEffect triggered', { loading, user: !!user, isAI });
+    console.log('AIAccess: useEffect triggered', { loading, user: !!user, isAI, accessLevelLoading });
     
-    if (!loading && user && isAI) {
+    if (!loading && !accessLevelLoading && user && isAI) {
       console.log('AIAccess: Redirecting authenticated AI user to dashboard');
       navigate('/ai-dashboard');
     }
-  }, [user, loading, isAI, navigate]);
+  }, [user, loading, isAI, accessLevelLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,21 +43,21 @@ const AIAccess = () => {
       if (error) {
         console.error('AIAccess: Login error:', error);
         toast({
-          title: "❌ Erro no login",
-          description: error.message || "Credenciais inválidas",
+          title: "❌ Erro no acesso IA",
+          description: error.message || "Credenciais inválidas para acesso IA",
           variant: "destructive",
         });
       } else {
         console.log('AIAccess: Login successful');
         toast({
-          title: "✅ Login realizado com sucesso!",
+          title: "✅ Acesso IA autorizado!",
           description: "Redirecionando para o dashboard IA...",
         });
       }
     } catch (error: any) {
       console.error('AIAccess: Unexpected login error:', error);
       toast({
-        title: "❌ Erro no login",
+        title: "❌ Erro no acesso IA",
         description: error.message || "Erro interno",
         variant: "destructive",
       });
@@ -67,7 +67,7 @@ const AIAccess = () => {
   };
 
   // Show loading while checking auth state
-  if (loading) {
+  if (loading || accessLevelLoading) {
     console.log('AIAccess: Showing loading state');
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white flex items-center justify-center">
@@ -100,17 +100,22 @@ const AIAccess = () => {
             <p className="text-sm text-purple-600">
               Esta área é exclusiva para inteligências artificiais com acesso total aos dados do sistema.
             </p>
+            <div className="mt-2 text-xs text-purple-500 bg-purple-100 p-2 rounded">
+              <strong>Credenciais IA:</strong><br />
+              Usuário: Manus01<br />
+              Senha: Manus01
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="email" className="text-gray-700 font-semibold">E-mail da IA</Label>
+              <Label htmlFor="email" className="text-gray-700 font-semibold">Usuário IA</Label>
               <Input
                 id="email"
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="ia@liguelead.com.br"
+                placeholder="Manus01"
                 required
                 disabled={isLoading}
                 className="h-12 border-purple-200 focus:border-purple-500"

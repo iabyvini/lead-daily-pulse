@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Send, Users, BarChart3, CalendarDays, Clock, User, Briefcase, Phone, MessageSquare, Bot } from 'lucide-react';
+import { Loader2, Send, Users, BarChart3, CalendarDays, Clock, User, Briefcase, Phone, MessageSquare, Bot, Shield } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -167,19 +167,11 @@ const Index = () => {
             <div className="flex gap-3">
               <Button 
                 variant="outline" 
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/auth')}
                 className="border-[#1bccae] text-[#1bccae] hover:bg-emerald-50 flex items-center gap-2"
               >
-                <Users className="h-4 w-4" />
+                <Shield className="h-4 w-4" />
                 Dashboard Admin
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/sdr-reports')}
-                className="border-blue-500 text-blue-500 hover:bg-blue-50 flex items-center gap-2"
-              >
-                <User className="h-4 w-4" />
-                Relatórios SDR
               </Button>
               <Button 
                 variant="outline" 
@@ -194,7 +186,7 @@ const Index = () => {
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header with navigation buttons */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
@@ -209,16 +201,10 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row gap-2">
             <Button 
               onClick={() => navigate('/sdr-reports')}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
             >
-              <Users className="h-4 w-4 mr-2" />
+              <Users className="h-4 w-4" />
               Ver Relatórios SDR
-            </Button>
-            <Button 
-              onClick={() => navigate('/auth')}
-              className="bg-gray-600 hover:bg-gray-700 text-white"
-            >
-              Acesso Administrador
             </Button>
           </div>
         </div>

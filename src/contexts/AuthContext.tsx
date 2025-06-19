@@ -15,6 +15,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   loading: boolean;
+  accessLevelLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,24 +33,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [accessLevel, setAccessLevel] = useState<AccessLevel | null>(null);
   const [loading, setLoading] = useState(true);
+  const [accessLevelLoading, setAccessLevelLoading] = useState(false);
 
-  // Function to check access level with error handling and timeout
+  // Function to check access level with improved error handling
   const checkAccessLevel = async (userId: string): Promise<AccessLevel> => {
     try {
       console.log('AuthProvider: Checking access level for user', userId);
+      setAccessLevelLoading(true);
       
-      // Set a timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 5000)
-      );
-      
-      const queryPromise = supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('access_level')
         .eq('id', userId)
         .single();
-      
-      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
       
       if (error) {
         console.error('AuthProvider: Error checking access level', error);
@@ -61,6 +57,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('AuthProvider: Access level check failed', error);
       return 'user';
+    } finally {
+      setAccessLevelLoading(false);
     }
   };
 
@@ -77,23 +75,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user) {
           console.log('AuthProvider: User authenticated, checking access level');
-          
-          // Use setTimeout to defer the access level check and prevent blocking the auth flow
-          setTimeout(async () => {
-            try {
-              const userAccessLevel = await checkAccessLevel(session.user.id);
-              setAccessLevel(userAccessLevel);
-            } catch (error) {
-              console.error('AuthProvider: Failed to check access level', error);
-              setAccessLevel('user');
-            }
-          }, 0);
+          try {
+            const userAccessLevel = await checkAccessLevel(session.user.id);
+            setAccessLevel(userAccessLevel);
+          } catch (error) {
+            console.error('AuthProvider: Failed to check access level', error);
+            setAccessLevel('user');
+          }
         } else {
           console.log('AuthProvider: No user, setting access level to null');
           setAccessLevel(null);
+          setAccessLevelLoading(false);
         }
         
-        // Always set loading to false after processing auth state
         setLoading(false);
       }
     );
@@ -107,23 +101,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        // Check access level for initial session
-        setTimeout(async () => {
-          try {
-            const userAccessLevel = await checkAccessLevel(session.user.id);
-            setAccessLevel(userAccessLevel);
-          } catch (error) {
-            console.error('AuthProvider: Failed to check initial access level', error);
-            setAccessLevel('user');
-          }
-        }, 0);
+        checkAccessLevel(session.user.id).then((userAccessLevel) => {
+          setAccessLevel(userAccessLevel);
+        }).catch((error) => {
+          console.error('AuthProvider: Failed to check initial access level', error);
+          setAccessLevel('user');
+        });
+      } else {
+        setAccessLevelLoading(false);
       }
       
-      // Set loading to false even if no session
       setLoading(false);
     }).catch((error) => {
       console.error('AuthProvider: Error getting initial session', error);
       setLoading(false);
+      setAccessLevelLoading(false);
     });
 
     return () => {
@@ -151,12 +143,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthProvider: Signing out');
     await supabase.auth.signOut();
     setAccessLevel(null);
+    setAccessLevelLoading(false);
   };
 
   const resetPassword = async (email: string) => {
     console.log('AuthProvider: Sending password reset email to', email);
     try {
-      // Get the current URL and construct the reset URL properly
       const currentUrl = window.location.origin;
       const redirectUrl = `${currentUrl}/reset-password`;
       
@@ -183,6 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut,
     resetPassword,
     loading,
+    accessLevelLoading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
