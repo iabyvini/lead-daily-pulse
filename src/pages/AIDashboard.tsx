@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, LogOut, Bot, Database, Download, FileJson, FileSpreadsheet } from 'lucide-react';
+import { Loader2, LogOut, Bot, Database, Download, FileJson, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface DailyReport {
@@ -46,20 +46,17 @@ const AIDashboard = () => {
       userEmail: user?.email 
     });
 
-    // Se ainda está carregando, não fazer nada
     if (loading) {
       console.log('AIDashboard: Still loading auth state, waiting...');
       return;
     }
 
-    // Se não há usuário logado, redirecionar para ai-access
     if (!user) {
       console.log('AIDashboard: No user found, redirecting to ai-access');
       navigate('/ai-access');
       return;
     }
 
-    // Se há usuário mas não é IA, redirecionar para ai-access
     if (!isAI) {
       console.log('AIDashboard: User is not AI, redirecting to ai-access');
       toast({
@@ -71,7 +68,6 @@ const AIDashboard = () => {
       return;
     }
 
-    // Se chegou até aqui, usuário é IA autenticada
     console.log('AIDashboard: AI user authenticated, fetching data');
     fetchData();
   }, [user, isAI, loading, navigate]);
@@ -82,7 +78,6 @@ const AIDashboard = () => {
     try {
       console.log('AIDashboard: Starting to fetch data...');
       
-      // Fetch daily reports
       const { data: reportsData, error: reportsError } = await supabase
         .from('daily_reports')
         .select('*')
@@ -93,7 +88,6 @@ const AIDashboard = () => {
         throw reportsError;
       }
 
-      // Fetch meeting details
       const { data: meetingsData, error: meetingsError } = await supabase
         .from('meeting_details')
         .select('*')
@@ -114,6 +108,11 @@ const AIDashboard = () => {
 
       setReports(reportsWithData);
       setMeetings(meetingsWithData);
+
+      toast({
+        title: "✅ Dados carregados",
+        description: `${reportsWithData.length} relatórios e ${meetingsWithData.length} reuniões carregados`,
+      });
     } catch (error: any) {
       console.error('AIDashboard: Error fetching data:', error);
       setError(error.message);
@@ -130,6 +129,10 @@ const AIDashboard = () => {
   const handleSignOut = async () => {
     console.log('AIDashboard: Signing out AI user');
     await signOut();
+    toast({
+      title: "✅ Logout realizado",
+      description: "IA desconectada com sucesso",
+    });
     navigate('/');
   };
 
@@ -139,7 +142,8 @@ const AIDashboard = () => {
       meetings,
       exportDate: new Date().toISOString(),
       totalReports: reports.length,
-      totalMeetings: meetings.length
+      totalMeetings: meetings.length,
+      aiUser: user?.email
     };
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -158,7 +162,6 @@ const AIDashboard = () => {
     });
   };
 
-  // Mostrar loading enquanto verifica autenticação
   if (loading) {
     console.log('AIDashboard: Showing auth loading state');
     return (
@@ -171,13 +174,11 @@ const AIDashboard = () => {
     );
   }
 
-  // Se não há usuário ou não é IA, não mostrar nada (redirecionamento já foi feito)
   if (!user || !isAI) {
     console.log('AIDashboard: No user or not AI, showing empty state');
     return null;
   }
 
-  // Mostrar loading dos dados
   if (isLoadingData) {
     console.log('AIDashboard: Showing data loading state');
     return (
@@ -190,7 +191,6 @@ const AIDashboard = () => {
     );
   }
 
-  // Se há erro, mostrar mensagem de erro
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white flex items-center justify-center">
@@ -216,7 +216,10 @@ const AIDashboard = () => {
               <Bot className="h-8 w-8 text-purple-500" />
               Dashboard IA - Acesso Completo
             </h1>
-            <p className="text-gray-600 mt-1">IA: {user?.email}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <Shield className="h-4 w-4 text-purple-500" />
+              <p className="text-purple-600 font-medium">Usuário IA: {user?.email}</p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button 

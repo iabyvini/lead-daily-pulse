@@ -22,6 +22,10 @@ const AIAccess = () => {
     
     if (!loading && !accessLevelLoading && user && isAI) {
       console.log('AIAccess: Redirecting authenticated AI user to dashboard');
+      toast({
+        title: "✅ Acesso IA autorizado!",
+        description: "Redirecionando para o dashboard IA...",
+      });
       navigate('/ai-dashboard');
     }
   }, [user, loading, isAI, accessLevelLoading, navigate]);
@@ -48,11 +52,8 @@ const AIAccess = () => {
           variant: "destructive",
         });
       } else {
-        console.log('AIAccess: Login successful');
-        toast({
-          title: "✅ Acesso IA autorizado!",
-          description: "Redirecionando para o dashboard IA...",
-        });
+        console.log('AIAccess: Login successful, waiting for redirect');
+        // O redirecionamento será feito pelo useEffect quando isAI for true
       }
     } catch (error: any) {
       console.error('AIAccess: Unexpected login error:', error);
@@ -92,7 +93,7 @@ const AIAccess = () => {
         </CardHeader>
         
         <CardContent className="p-6">
-          <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+          <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
             <div className="flex items-center gap-2 text-purple-700 mb-2">
               <Database className="h-5 w-5" />
               <span className="font-semibold">Acesso Completo aos Dados</span>
@@ -100,11 +101,6 @@ const AIAccess = () => {
             <p className="text-sm text-purple-600">
               Esta área é exclusiva para inteligências artificiais com acesso total aos dados do sistema.
             </p>
-            <div className="mt-2 text-xs text-purple-500 bg-purple-100 p-2 rounded">
-              <strong>Credenciais IA:</strong><br />
-              Usuário: Manus01<br />
-              Senha: Manus01
-            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -115,7 +111,7 @@ const AIAccess = () => {
                 type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Manus01"
+                placeholder="Digite o usuário da IA"
                 required
                 disabled={isLoading}
                 className="h-12 border-purple-200 focus:border-purple-500"
@@ -123,13 +119,13 @@ const AIAccess = () => {
             </div>
             
             <div>
-              <Label htmlFor="password" className="text-gray-700 font-semibold">Token de Acesso</Label>
+              <Label htmlFor="password" className="text-gray-700 font-semibold">Senha</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Token de acesso da IA"
+                placeholder="Digite a senha da IA"
                 required
                 disabled={isLoading}
                 className="h-12 border-purple-200 focus:border-purple-500"
