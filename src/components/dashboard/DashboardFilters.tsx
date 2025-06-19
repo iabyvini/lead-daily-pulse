@@ -30,8 +30,21 @@ export const DashboardFilters = ({ reports, onFiltersChange }: DashboardFiltersP
   const [startDateOpen, setStartDateOpen] = React.useState(false);
   const [endDateOpen, setEndDateOpen] = React.useState(false);
 
-  // Get unique vendors
-  const vendors = Array.from(new Set(reports.map(report => report.vendedor))).sort();
+  // Get unique vendors and filter out empty/null values
+  const vendors = React.useMemo(() => {
+    if (!reports || reports.length === 0) return [];
+    
+    const uniqueVendors = Array.from(
+      new Set(
+        reports
+          .map(report => report?.vendedor)
+          .filter(vendedor => vendedor && vendedor.trim() !== '') // Remove empty/null values
+      )
+    ).sort();
+    
+    console.log('DashboardFilters: Available vendors:', uniqueVendors);
+    return uniqueVendors;
+  }, [reports]);
 
   const updateFilters = (newFilters: Partial<FilterState>) => {
     const updatedFilters = { ...filters, ...newFilters };
@@ -51,6 +64,25 @@ export const DashboardFilters = ({ reports, onFiltersChange }: DashboardFiltersP
 
   const hasActiveFilters = filters.vendedor || filters.startDate || filters.endDate;
 
+  // If no reports available, show a simple message
+  if (!reports || reports.length === 0) {
+    return (
+      <Card className="border-emerald-200 mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-gray-800">
+            <Filter className="h-5 w-5 text-[#1bccae]" />
+            Filtros
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-gray-500 text-center py-4">
+            Nenhum dado disponível para filtrar
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="border-emerald-200 mb-6">
       <CardHeader>
@@ -64,7 +96,10 @@ export const DashboardFilters = ({ reports, onFiltersChange }: DashboardFiltersP
           {/* Filtro por Vendedor */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">SDR</label>
-            <Select value={filters.vendedor} onValueChange={(value) => updateFilters({ vendedor: value })}>
+            <Select 
+              value={filters.vendedor} 
+              onValueChange={(value) => updateFilters({ vendedor: value || '' })}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Todos os SDRs" />
               </SelectTrigger>

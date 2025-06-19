@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,9 +9,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, LogOut, BarChart3, Users, Calendar, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
-import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
-import { DashboardFilters, FilterState } from '@/components/dashboard/DashboardFilters';
-import { ExportButtons } from '@/components/dashboard/ExportButtons';
 
 interface DailyReport {
   id: string;
@@ -34,9 +32,8 @@ const Dashboard = () => {
   const { user, isAdmin, signOut, loading } = useAuth();
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [meetings, setMeetings] = useState<MeetingDetail[]>([]);
-  const [filteredReports, setFilteredReports] = useState<DailyReport[]>([]);
-  const [filteredMeetings, setFilteredMeetings] = useState<MeetingDetail[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -79,6 +76,7 @@ const Dashboard = () => {
 
   const fetchData = async () => {
     setIsLoadingData(true);
+    setError(null);
     try {
       console.log('Dashboard: Starting to fetch data...');
       
@@ -114,10 +112,9 @@ const Dashboard = () => {
 
       setReports(reportsWithData);
       setMeetings(meetingsWithData);
-      setFilteredReports(reportsWithData);
-      setFilteredMeetings(meetingsWithData);
     } catch (error: any) {
       console.error('Dashboard: Error fetching data:', error);
+      setError(error.message);
       toast({
         title: "❌ Erro ao carregar dados",
         description: error.message,
@@ -128,47 +125,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleFiltersChange = (filters: FilterState) => {
-    let filteredReportsData = [...reports];
-    let filteredMeetingsData = [...meetings];
-
-    // Filter by vendor
-    if (filters.vendedor) {
-      filteredReportsData = filteredReportsData.filter(
-        report => report.vendedor === filters.vendedor
-      );
-      filteredMeetingsData = filteredMeetingsData.filter(
-        meeting => meeting.vendedor_responsavel === filters.vendedor
-      );
-    }
-
-    // Filter by date range
-    if (filters.startDate) {
-      const startDate = new Date(filters.startDate);
-      startDate.setHours(0, 0, 0, 0);
-      filteredReportsData = filteredReportsData.filter(
-        report => new Date(report.data_registro) >= startDate
-      );
-      filteredMeetingsData = filteredMeetingsData.filter(
-        meeting => new Date(meeting.data_agendamento) >= startDate
-      );
-    }
-
-    if (filters.endDate) {
-      const endDate = new Date(filters.endDate);
-      endDate.setHours(23, 59, 59, 999);
-      filteredReportsData = filteredReportsData.filter(
-        report => new Date(report.data_registro) <= endDate
-      );
-      filteredMeetingsData = filteredMeetingsData.filter(
-        meeting => new Date(meeting.data_agendamento) <= endDate
-      );
-    }
-
-    setFilteredReports(filteredReportsData);
-    setFilteredMeetings(filteredMeetingsData);
-  };
-
   const handleSignOut = async () => {
     console.log('Dashboard: Signing out user');
     await signOut();
@@ -176,9 +132,9 @@ const Dashboard = () => {
   };
 
   const calculateTotals = () => {
-    const totalAgendadas = filteredReports.reduce((sum, report) => sum + report.reunioes_agendadas, 0);
-    const totalRealizadas = filteredReports.reduce((sum, report) => sum + report.reunioes_realizadas, 0);
-    const totalSDRs = new Set(filteredReports.map(report => report.vendedor)).size;
+    const totalAgendadas = reports.reduce((sum, report) => sum + report.reunioes_agendadas, 0);
+    const totalRealizadas = reports.reduce((sum, report) => sum + report.reunioes_realizadas, 0);
+    const totalSDRs = new Set(reports.map(report => report.vendedor)).size;
     
     return { totalAgendadas, totalRealizadas, totalSDRs };
   };
@@ -215,6 +171,20 @@ const Dashboard = () => {
     );
   }
 
+  // Se há erro, mostrar mensagem de erro
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Erro: {error}</p>
+          <Button onClick={fetchData} className="bg-[#1bccae] hover:bg-emerald-600">
+            Tentar Novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   console.log('Dashboard: Rendering dashboard content');
   const { totalAgendadas, totalRealizadas, totalSDRs } = calculateTotals();
 
@@ -226,12 +196,11 @@ const Dashboard = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
               <BarChart3 className="h-8 w-8 text-[#1bccae]" />
-              Dashboard de Relatórios
+              Dashboard de Relatórios (Versão Simplificada)
             </h1>
             <p className="text-gray-600 mt-1">Bem-vindo, {user?.email}</p>
           </div>
           <div className="flex gap-2">
-            <ExportButtons reports={filteredReports} meetings={filteredMeetings} />
             <Button 
               variant="outline" 
               onClick={() => navigate('/')}
@@ -249,9 +218,6 @@ const Dashboard = () => {
             </Button>
           </div>
         </div>
-
-        {/* Filters */}
-        <DashboardFilters reports={reports} onFiltersChange={handleFiltersChange} />
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -306,76 +272,85 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Charts */}
-        <DashboardCharts reports={filteredReports} />
-
         {/* Reports Table */}
         <Card className="mb-8 border-emerald-200">
           <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white">
-            <CardTitle>Relatórios Diários</CardTitle>
+            <CardTitle>Relatórios Diários ({reports.length} registros)</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-emerald-50">
-                  <TableHead>SDR</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Reuniões Agendadas</TableHead>
-                  <TableHead>Reuniões Realizadas</TableHead>
-                  <TableHead>Data de Envio</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredReports.map((report) => (
-                  <TableRow key={report.id}>
-                    <TableCell className="font-medium">{report.vendedor}</TableCell>
-                    <TableCell>{format(new Date(report.data_registro), 'dd/MM/yyyy')}</TableCell>
-                    <TableCell>{report.reunioes_agendadas}</TableCell>
-                    <TableCell>{report.reunioes_realizadas}</TableCell>
-                    <TableCell>{format(new Date(report.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
+            {reports.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-emerald-50">
+                    <TableHead>SDR</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Reuniões Agendadas</TableHead>
+                    <TableHead>Reuniões Realizadas</TableHead>
+                    <TableHead>Data de Envio</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {reports.map((report) => (
+                    <TableRow key={report.id}>
+                      <TableCell className="font-medium">{report.vendedor}</TableCell>
+                      <TableCell>{format(new Date(report.data_registro), 'dd/MM/yyyy')}</TableCell>
+                      <TableCell>{report.reunioes_agendadas}</TableCell>
+                      <TableCell>{report.reunioes_realizadas}</TableCell>
+                      <TableCell>{format(new Date(report.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                Nenhum relatório encontrado
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Meetings Table */}
         <Card className="border-emerald-200">
           <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white">
-            <CardTitle>Detalhes das Reuniões</CardTitle>
+            <CardTitle>Detalhes das Reuniões ({meetings.length} registros)</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-emerald-50">
-                  <TableHead>Lead</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Horário</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Vendedor Responsável</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMeetings.map((meeting) => (
-                  <TableRow key={meeting.id}>
-                    <TableCell className="font-medium">{meeting.nome_lead}</TableCell>
-                    <TableCell>{format(new Date(meeting.data_agendamento), 'dd/MM/yyyy')}</TableCell>
-                    <TableCell>{meeting.horario_agendamento}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        meeting.status === 'Realizado' ? 'bg-emerald-100 text-emerald-800' :
-                        meeting.status === 'Agendado' ? 'bg-blue-100 text-blue-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {meeting.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>{meeting.vendedor_responsavel}</TableCell>
+            {meetings.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-emerald-50">
+                    <TableHead>Lead</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Horário</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Vendedor Responsável</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {meetings.map((meeting) => (
+                    <TableRow key={meeting.id}>
+                      <TableCell className="font-medium">{meeting.nome_lead}</TableCell>
+                      <TableCell>{format(new Date(meeting.data_agendamento), 'dd/MM/yyyy')}</TableCell>
+                      <TableCell>{meeting.horario_agendamento}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          meeting.status === 'Realizado' ? 'bg-emerald-100 text-emerald-800' :
+                          meeting.status === 'Agendado' ? 'bg-blue-100 text-blue-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {meeting.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>{meeting.vendedor_responsavel}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                Nenhuma reunião encontrada
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
