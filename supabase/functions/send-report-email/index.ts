@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
@@ -95,7 +94,7 @@ serve(async (req) => {
 
     // Parse and validate request data
     const reportData: ReportData = await req.json();
-    console.log('Dados recebidos:', reportData);
+    console.log('Dados recebidos:', JSON.stringify(reportData, null, 2));
 
     // Validate input data
     const validation = validateReportData(reportData);
@@ -141,32 +140,57 @@ serve(async (req) => {
 
     console.log('Relatório salvo:', reportRecord);
 
-    // Save meeting details if any
+    // Save ALL meeting details if any - including empty ones for debugging
     if (reportData.reunioes && reportData.reunioes.length > 0) {
-      const meetingDetails = reportData.reunioes.map(reuniao => ({
-        report_id: reportRecord.id,
-        nome_lead: reuniao.nomeLead.trim(),
-        data_agendamento: reuniao.dataAgendamento,
-        horario_agendamento: reuniao.horarioAgendamento,
-        status: reuniao.status,
-        vendedor_responsavel: reuniao.vendedorResponsavel.trim(),
-      }));
+      console.log(`Salvando ${reportData.reunioes.length} detalhes de reuniões...`);
+      
+      // Filter out completely empty meetings but keep partially filled ones
+      const validMeetings = reportData.reunioes.filter(reuniao => 
+        reuniao.nomeLead && reuniao.nomeLead.trim().length > 0
+      );
+      
+      console.log(`Reuniões válidas filtradas: ${validMeetings.length}`);
+      console.log('Reuniões válidas:', JSON.stringify(validMeetings, null, 2));
 
-      const { error: meetingsError } = await supabase
-        .from('meeting_details')
-        .insert(meetingDetails);
+      if (validMeetings.length > 0) {
+        const meetingDetails = validMeetings.map(reuniao => ({
+          report_id: reportRecord.id,
+          nome_lead: reuniao.nomeLead.trim(),
+          data_agendamento: reuniao.dataAgendamento,
+          horario_agendamento: reuniao.horarioAgendamento,
+          status: reuniao.status,
+          vendedor_responsavel: reuniao.vendedorResponsavel ? reuniao.vendedorResponsavel.trim() : '',
+        }));
 
-      if (meetingsError) {
-        console.error('Erro ao salvar detalhes das reuniões:', meetingsError);
-        // Don't fail the entire operation if meeting details fail
+        console.log('Inserindo detalhes das reuniões:', JSON.stringify(meetingDetails, null, 2));
+
+        const { data: meetingsData, error: meetingsError } = await supabase
+          .from('meeting_details')
+          .insert(meetingDetails)
+          .select();
+
+        if (meetingsError) {
+          console.error('Erro ao salvar detalhes das reuniões:', meetingsError);
+          // Log the error but don't fail the entire operation
+          console.error('Detalhes do erro:', JSON.stringify(meetingsError, null, 2));
+        } else {
+          console.log(`✅ ${meetingsData?.length || 0} detalhes de reuniões salvos com sucesso!`);
+          console.log('Dados salvos:', JSON.stringify(meetingsData, null, 2));
+        }
+      } else {
+        console.log('Nenhuma reunião válida encontrada para salvar');
       }
+    } else {
+      console.log('Nenhuma reunião fornecida no relatório');
     }
 
     // Prepare email content with sanitized data
     const reunioesText = reportData.reunioes && reportData.reunioes.length > 0 
-      ? reportData.reunioes.map(r => 
-          `- ${r.nomeLead.trim()} | ${r.dataAgendamento} ${r.horarioAgendamento} | Status: ${r.status} | Responsável: ${r.vendedorResponsavel.trim()}`
-        ).join('\n')
+      ? reportData.reunioes
+          .filter(r => r.nomeLead && r.nomeLead.trim().length > 0)
+          .map(r => 
+            `- ${r.nomeLead.trim()} | ${r.dataAgendamento} ${r.horarioAgendamento} | Status: ${r.status} | Responsável: ${r.vendedorResponsavel ? r.vendedorResponsavel.trim() : 'N/A'}`
+          ).join('\n')
       : 'Nenhuma reunião registrada.';
 
     const emailHtml = `
