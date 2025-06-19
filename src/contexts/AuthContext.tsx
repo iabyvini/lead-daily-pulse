@@ -89,9 +89,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Get initial session
+    // Get initial session with timeout fallback
     console.log('AuthProvider: Getting initial session');
+    const initTimeout = setTimeout(() => {
+      console.log('AuthProvider: Session check timeout, setting loading to false');
+      setLoading(false);
+      setAccessLevelLoading(false);
+    }, 5000);
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      clearTimeout(initTimeout);
       console.log('AuthProvider: Initial session', { session: !!session });
       
       setSession(session);
@@ -106,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       setLoading(false);
     }).catch((error) => {
+      clearTimeout(initTimeout);
       console.error('AuthProvider: Error getting initial session', error);
       setLoading(false);
       setAccessLevelLoading(false);
