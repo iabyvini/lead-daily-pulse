@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +8,7 @@ interface AuthContextType {
   isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
   loading: boolean;
 }
 
@@ -148,12 +148,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAdmin(false);
   };
 
+  const resetPassword = async (email: string) => {
+    console.log('AuthProvider: Sending password reset email to', email);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth?mode=reset`,
+      });
+      console.log('AuthProvider: Password reset result', { error });
+      return { error };
+    } catch (error) {
+      console.error('AuthProvider: Password reset error', error);
+      return { error };
+    }
+  };
+
   const value = {
     user,
     session,
     isAdmin,
     signIn,
     signOut,
+    resetPassword,
     loading,
   };
 
