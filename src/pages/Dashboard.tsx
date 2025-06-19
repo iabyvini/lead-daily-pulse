@@ -40,26 +40,58 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
+    console.log('Dashboard: useEffect triggered', { 
+      loading, 
+      user: !!user, 
+      isAdmin,
+      userEmail: user?.email 
+    });
+
+    // Se ainda está carregando, não fazer nada
+    if (loading) {
+      console.log('Dashboard: Still loading auth state, waiting...');
+      return;
+    }
+
+    // Se não há usuário logado, redirecionar para auth
+    if (!user) {
+      console.log('Dashboard: No user found, redirecting to auth');
       navigate('/auth');
       return;
     }
 
-    if (user && isAdmin) {
-      fetchData();
+    // Se há usuário mas não é admin, redirecionar para auth
+    if (!isAdmin) {
+      console.log('Dashboard: User is not admin, redirecting to auth');
+      toast({
+        title: "❌ Acesso negado",
+        description: "Você precisa ser administrador para acessar o dashboard.",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
     }
+
+    // Se chegou até aqui, usuário está logado e é admin
+    console.log('Dashboard: User authenticated and is admin, fetching data');
+    fetchData();
   }, [user, isAdmin, loading, navigate]);
 
   const fetchData = async () => {
     setIsLoadingData(true);
     try {
+      console.log('Dashboard: Starting to fetch data...');
+      
       // Fetch daily reports
       const { data: reportsData, error: reportsError } = await supabase
         .from('daily_reports')
         .select('*')
         .order('data_registro', { ascending: false });
 
-      if (reportsError) throw reportsError;
+      if (reportsError) {
+        console.error('Dashboard: Reports error:', reportsError);
+        throw reportsError;
+      }
 
       // Fetch meeting details
       const { data: meetingsData, error: meetingsError } = await supabase
@@ -67,16 +99,25 @@ const Dashboard = () => {
         .select('*')
         .order('data_agendamento', { ascending: false });
 
-      if (meetingsError) throw meetingsError;
+      if (meetingsError) {
+        console.error('Dashboard: Meetings error:', meetingsError);
+        throw meetingsError;
+      }
 
       const reportsWithData = reportsData || [];
       const meetingsWithData = meetingsData || [];
+
+      console.log('Dashboard: Data fetched successfully', {
+        reports: reportsWithData.length,
+        meetings: meetingsWithData.length
+      });
 
       setReports(reportsWithData);
       setMeetings(meetingsWithData);
       setFilteredReports(reportsWithData);
       setFilteredMeetings(meetingsWithData);
     } catch (error: any) {
+      console.error('Dashboard: Error fetching data:', error);
       toast({
         title: "❌ Erro ao carregar dados",
         description: error.message,
@@ -129,6 +170,7 @@ const Dashboard = () => {
   };
 
   const handleSignOut = async () => {
+    console.log('Dashboard: Signing out user');
     await signOut();
     navigate('/');
   };
@@ -141,14 +183,39 @@ const Dashboard = () => {
     return { totalAgendadas, totalRealizadas, totalSDRs };
   };
 
-  if (loading || isLoadingData) {
+  // Mostrar loading enquanto verifica autenticação
+  if (loading) {
+    console.log('Dashboard: Showing auth loading state');
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#1bccae]" />
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1bccae] mx-auto mb-4" />
+          <p className="text-gray-600">Verificando autenticação...</p>
+        </div>
       </div>
     );
   }
 
+  // Se não há usuário ou não é admin, não mostrar nada (redirecionamento já foi feito)
+  if (!user || !isAdmin) {
+    console.log('Dashboard: No user or not admin, showing empty state');
+    return null;
+  }
+
+  // Mostrar loading dos dados
+  if (isLoadingData) {
+    console.log('Dashboard: Showing data loading state');
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1bccae] mx-auto mb-4" />
+          <p className="text-gray-600">Carregando dados do dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('Dashboard: Rendering dashboard content');
   const { totalAgendadas, totalRealizadas, totalSDRs } = calculateTotals();
 
   return (
