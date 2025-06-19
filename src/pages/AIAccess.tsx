@@ -13,31 +13,12 @@ const AIAccess = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
   const { signIn, user, loading, isAI, accessLevelLoading } = useAuth();
   const navigate = useNavigate();
 
-  // Add timeout to show form if loading takes too long
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (loading || accessLevelLoading) {
-        console.log('AIAccess: Loading timeout, showing form');
-        setShowForm(true);
-      }
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [loading, accessLevelLoading]);
-
   // Redirect if already authenticated as AI
   useEffect(() => {
-    console.log('AIAccess: Auth state check', { 
-      loading, 
-      accessLevelLoading, 
-      user: !!user, 
-      isAI,
-      showForm 
-    });
+    console.log('AIAccess: useEffect triggered', { loading, user: !!user, isAI, accessLevelLoading });
     
     if (!loading && !accessLevelLoading && user && isAI) {
       console.log('AIAccess: Redirecting authenticated AI user to dashboard');
@@ -46,8 +27,6 @@ const AIAccess = () => {
         description: "Redirecionando para o dashboard IA...",
       });
       navigate('/ai-dashboard');
-    } else if (!loading && !accessLevelLoading) {
-      setShowForm(true);
     }
   }, [user, loading, isAI, accessLevelLoading, navigate]);
 
@@ -74,6 +53,7 @@ const AIAccess = () => {
         });
       } else {
         console.log('AIAccess: Login successful, waiting for redirect');
+        // O redirecionamento será feito pelo useEffect quando isAI for true
       }
     } catch (error: any) {
       console.error('AIAccess: Unexpected login error:', error);
@@ -87,15 +67,14 @@ const AIAccess = () => {
     }
   };
 
-  // Show loading while checking auth state (with timeout)
-  if ((loading || accessLevelLoading) && !showForm) {
+  // Show loading while checking auth state
+  if (loading || accessLevelLoading) {
     console.log('AIAccess: Showing loading state');
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-purple-500 mx-auto mb-4" />
           <p className="text-gray-600">Verificando autenticação...</p>
-          <p className="text-sm text-gray-500 mt-2">Se isso demorar muito, clique em voltar e tente novamente</p>
         </div>
       </div>
     );
