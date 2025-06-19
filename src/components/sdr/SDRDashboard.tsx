@@ -24,6 +24,7 @@ interface MeetingDetail {
   horario_agendamento: string;
   status: string;
   vendedor_responsavel: string;
+  report_id: string;
 }
 
 export const SDRDashboard: React.FC = () => {
@@ -41,6 +42,8 @@ export const SDRDashboard: React.FC = () => {
   const fetchSDRData = async (sdrName: string) => {
     setLoading(true);
     try {
+      console.log(`Buscando dados para SDR: ${sdrName}`);
+      
       // Fetch reports for the selected SDR
       const { data: reportsData, error: reportsError } = await supabase
         .from('daily_reports')
@@ -48,19 +51,41 @@ export const SDRDashboard: React.FC = () => {
         .eq('vendedor', sdrName)
         .order('data_registro', { ascending: false });
 
-      if (reportsError) throw reportsError;
+      if (reportsError) {
+        console.error('Erro ao buscar relatórios:', reportsError);
+        throw reportsError;
+      }
 
-      // Fetch meetings for the selected SDR
-      const { data: meetingsData, error: meetingsError } = await supabase
-        .from('meeting_details')
-        .select('*')
-        .eq('vendedor_responsavel', sdrName)
-        .order('data_agendamento', { ascending: false });
-
-      if (meetingsError) throw meetingsError;
+      console.log(`Encontrados ${reportsData?.length || 0} relatórios para ${sdrName}`);
+      console.log('Relatórios encontrados:', reportsData);
 
       setReports(reportsData || []);
-      setMeetings(meetingsData || []);
+
+      // Get all report IDs for this SDR
+      const reportIds = reportsData?.map(report => report.id) || [];
+      console.log('Report IDs para buscar reuniões:', reportIds);
+
+      if (reportIds.length > 0) {
+        // Fetch ALL meetings related to these reports (not just by vendedor_responsavel)
+        const { data: meetingsData, error: meetingsError } = await supabase
+          .from('meeting_details')
+          .select('*')
+          .in('report_id', reportIds)
+          .order('data_agendamento', { ascending: false });
+
+        if (meetingsError) {
+          console.error('Erro ao buscar reuniões:', meetingsError);
+          throw meetingsError;
+        }
+
+        console.log(`Encontradas ${meetingsData?.length || 0} reuniões para os relatórios de ${sdrName}`);
+        console.log('Reuniões encontradas:', meetingsData);
+        
+        setMeetings(meetingsData || []);
+      } else {
+        setMeetings([]);
+      }
+
     } catch (error) {
       console.error('Error fetching SDR data:', error);
     } finally {
@@ -100,7 +125,10 @@ export const SDRDashboard: React.FC = () => {
             <Users className="h-6 w-6 text-[#1bccae]" />
             Relatórios de {selectedSDR}
           </h2>
-          <p className="text-gray-600">Acompanhe seu desempenho e histórico de atividades</p>
+          <p className="text-gray-600">
+            Acompanhe seu desempenho e histórico de atividades 
+            ({meetings.length} reuniões detalhadas encontradas)
+          </p>
         </div>
         <SDRSelector onSDRSelect={setSelectedSDR} selectedSDR={selectedSDR} />
       </div>
@@ -156,8 +184,8 @@ export const SDRDashboard: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <Calendar className="h-8 w-8 text-[#1bccae]" />
                   <div>
-                    <p className="text-sm text-gray-600">Dias Trabalhados</p>
-                    <p className="text-2xl font-bold text-gray-800">{totalDias}</p>
+                    <p className="text-sm text-gray-600">Reuniões Detalhadas</p>
+                    <p className="text-2xl font-bold text-gray-800">{meetings.length}</p>
                   </div>
                 </div>
               </CardContent>
@@ -168,7 +196,7 @@ export const SDRDashboard: React.FC = () => {
           <Tabs defaultValue="reports" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="reports">Relatórios Diários</TabsTrigger>
-              <TabsTrigger value="meetings">Detalhes das Reuniões</TabsTrigger>
+              <TabsTrigger value="meetings">Detalhes das Reuniões ({meetings.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="reports" className="space-y-4">
@@ -184,6 +212,7 @@ export const SDRDashboard: React.FC = () => {
                         <TableHead>Reuniões Agendadas</TableHead>
                         <TableHead>Reuniões Realizadas</TableHead>
                         <TableHead>Data de Envio</TableHead>
+                        <TableHead>ID do Relatório</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -193,11 +222,12 @@ export const SDRDashboard: React.FC = () => {
                           <TableCell>{report.reunioes_agendadas}</TableCell>
                           <TableCell>{report.reunioes_realizadas}</TableCell>
                           <TableCell>{format(new Date(report.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
+                          <TableCell className="text-xs text-gray-500">{report.id.slice(0, 8)}...</TableCell>
                         </TableRow>
                       ))}
                       {reports.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                          <TableCell colSpan={5} className="text-center py-8 text-gray-500">
                             Nenhum relatório encontrado
                           </TableCell>
                         </TableRow>
@@ -211,7 +241,7 @@ export const SDRDashboard: React.FC = () => {
             <TabsContent value="meetings" className="space-y-4">
               <Card className="border-emerald-200">
                 <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white">
-                  <CardTitle>Suas Reuniões</CardTitle>
+                  <CardTitle>Todas as Reuniões Registradas ({meetings.length})</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
                   <Table>
@@ -221,6 +251,8 @@ export const SDRDashboard: React.FC = () => {
                         <TableHead>Data</TableHead>
                         <TableHead>Horário</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Vendedor Responsável</TableHead>
+                        <TableHead>Relatório</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -238,11 +270,13 @@ export const SDRDashboard: React.FC = () => {
                               {meeting.status}
                             </span>
                           </TableCell>
+                          <TableCell>{meeting.vendedor_responsavel || 'N/A'}</TableCell>
+                          <TableCell className="text-xs text-gray-500">{meeting.report_id?.slice(0, 8)}...</TableCell>
                         </TableRow>
                       ))}
                       {meetings.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                          <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                             Nenhuma reunião encontrada
                           </TableCell>
                         </TableRow>
