@@ -53,7 +53,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       console.log('AuthProvider: Profile data', profile);
-      return profile?.access_level || 'user';
+      const level = profile?.access_level || 'user';
+      console.log('AuthProvider: Access level determined:', level);
+      return level;
     } catch (error) {
       console.error('AuthProvider: Access level check failed', error);
       return 'user';
@@ -75,13 +77,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user) {
           console.log('AuthProvider: User authenticated, checking access level');
-          try {
-            const userAccessLevel = await checkAccessLevel(session.user.id);
-            setAccessLevel(userAccessLevel);
-          } catch (error) {
-            console.error('AuthProvider: Failed to check access level', error);
-            setAccessLevel('user');
-          }
+          const userAccessLevel = await checkAccessLevel(session.user.id);
+          setAccessLevel(userAccessLevel);
         } else {
           console.log('AuthProvider: No user, setting access level to null');
           setAccessLevel(null);
@@ -92,27 +89,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Get initial session
+    // Get initial session with timeout fallback
     console.log('AuthProvider: Getting initial session');
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initTimeout = setTimeout(() => {
+      console.log('AuthProvider: Session check timeout, setting loading to false');
+      setLoading(false);
+      setAccessLevelLoading(false);
+    }, 5000);
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      clearTimeout(initTimeout);
       console.log('AuthProvider: Initial session', { session: !!session });
       
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        checkAccessLevel(session.user.id).then((userAccessLevel) => {
-          setAccessLevel(userAccessLevel);
-        }).catch((error) => {
-          console.error('AuthProvider: Failed to check initial access level', error);
-          setAccessLevel('user');
-        });
+        const userAccessLevel = await checkAccessLevel(session.user.id);
+        setAccessLevel(userAccessLevel);
       } else {
         setAccessLevelLoading(false);
       }
       
       setLoading(false);
     }).catch((error) => {
+      clearTimeout(initTimeout);
       console.error('AuthProvider: Error getting initial session', error);
       setLoading(false);
       setAccessLevelLoading(false);
