@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, LogOut, BarChart3, Users, Calendar, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { ExportButtons } from '@/components/dashboard/ExportButtons';
 
 interface DailyReport {
   id: string;
@@ -196,11 +196,12 @@ const Dashboard = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
               <BarChart3 className="h-8 w-8 text-[#1bccae]" />
-              Dashboard de Relatórios (Versão Simplificada)
+              Dashboard de Relatórios
             </h1>
             <p className="text-gray-600 mt-1">Bem-vindo, {user?.email}</p>
           </div>
           <div className="flex gap-2">
+            <ExportButtons reports={reports} meetings={meetings} />
             <Button 
               variant="outline" 
               onClick={() => navigate('/')}
