@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { Loader2, LogOut, BarChart3, Users, Calendar, CheckCircle } from 'lucide
 import { format } from 'date-fns';
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
 import { DashboardFilters, FilterState } from '@/components/dashboard/DashboardFilters';
+import { ExportButtons } from '@/components/dashboard/ExportButtons';
 
 interface DailyReport {
   id: string;
@@ -164,6 +164,7 @@ const Dashboard = () => {
             <p className="text-gray-600 mt-1">Bem-vindo, {user?.email}</p>
           </div>
           <div className="flex gap-2">
+            <ExportButtons reports={filteredReports} meetings={filteredMeetings} />
             <Button 
               variant="outline" 
               onClick={() => navigate('/')}
