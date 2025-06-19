@@ -105,13 +105,13 @@ const AIAccess = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="email" className="text-gray-700 font-semibold">Usuário IA</Label>
+              <Label htmlFor="email" className="text-gray-700 font-semibold">Usuário</Label>
               <Input
                 id="email"
                 type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Digite o usuário da IA"
+                placeholder="Digite o usuário"
                 required
                 disabled={isLoading}
                 className="h-12 border-purple-200 focus:border-purple-500"
@@ -119,13 +119,13 @@ const AIAccess = () => {
             </div>
             
             <div>
-              <Label htmlFor="password" className="text-gray-700 font-semibold">Senha</Label>
+              <Label htmlFor="password" className="text-gray-700 font-semibold">Token de Acesso</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Digite a senha da IA"
+                placeholder="Digite o token de acesso"
                 required
                 disabled={isLoading}
                 className="h-12 border-purple-200 focus:border-purple-500"
