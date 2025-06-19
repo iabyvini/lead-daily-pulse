@@ -119,18 +119,14 @@ export const SDRSelector: React.FC<SDRSelectorProps> = ({ onSDRSelect, selectedS
             } 
           />
         </SelectTrigger>
-        <SelectContent className="z-50 bg-white border border-gray-200 shadow-lg">
+        <SelectContent className="z-[9999] bg-white border border-gray-200 shadow-lg">
           {sdrs.length > 0 ? (
             sdrs.map((sdr) => (
               <SelectItem key={sdr} value={sdr}>
                 {sdr}
               </SelectItem>
             ))
-          ) : (
-            <SelectItem value="" disabled>
-              {loading && !forceEnabled ? "Carregando..." : "Nenhum SDR disponível"}
-            </SelectItem>
-          )}
+          ) : null}
         </SelectContent>
       </Select>
       
