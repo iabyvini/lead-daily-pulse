@@ -88,18 +88,21 @@ export type Database = {
       }
       profiles: {
         Row: {
+          access_level: Database["public"]["Enums"]["access_level"]
           created_at: string | null
           email: string | null
           id: string
           is_admin: boolean | null
         }
         Insert: {
+          access_level?: Database["public"]["Enums"]["access_level"]
           created_at?: string | null
           email?: string | null
           id: string
           is_admin?: boolean | null
         }
         Update: {
+          access_level?: Database["public"]["Enums"]["access_level"]
           created_at?: string | null
           email?: string | null
           id?: string
@@ -115,7 +118,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      access_level: "user" | "admin" | "ai"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -230,6 +233,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      access_level: ["user", "admin", "ai"],
+    },
   },
 } as const

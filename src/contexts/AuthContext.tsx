@@ -3,10 +3,14 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+type AccessLevel = 'user' | 'admin' | 'ai';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   isAdmin: boolean;
+  isAI: boolean;
+  accessLevel: AccessLevel | null;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
@@ -26,13 +30,13 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [accessLevel, setAccessLevel] = useState<AccessLevel | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Function to check admin status with error handling and timeout
-  const checkAdminStatus = async (userId: string) => {
+  // Function to check access level with error handling and timeout
+  const checkAccessLevel = async (userId: string): Promise<AccessLevel> => {
     try {
-      console.log('AuthProvider: Checking admin status for user', userId);
+      console.log('AuthProvider: Checking access level for user', userId);
       
       // Set a timeout to prevent hanging
       const timeoutPromise = new Promise((_, reject) => 
@@ -41,22 +45,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const queryPromise = supabase
         .from('profiles')
-        .select('is_admin')
+        .select('access_level')
         .eq('id', userId)
         .single();
       
       const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
       
       if (error) {
-        console.error('AuthProvider: Error checking admin status', error);
-        return false;
+        console.error('AuthProvider: Error checking access level', error);
+        return 'user';
       }
       
       console.log('AuthProvider: Profile data', profile);
-      return profile?.is_admin || false;
+      return profile?.access_level || 'user';
     } catch (error) {
-      console.error('AuthProvider: Admin check failed', error);
-      return false;
+      console.error('AuthProvider: Access level check failed', error);
+      return 'user';
     }
   };
 
@@ -72,21 +76,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          console.log('AuthProvider: User authenticated, checking admin status');
+          console.log('AuthProvider: User authenticated, checking access level');
           
-          // Use setTimeout to defer the admin check and prevent blocking the auth flow
+          // Use setTimeout to defer the access level check and prevent blocking the auth flow
           setTimeout(async () => {
             try {
-              const adminStatus = await checkAdminStatus(session.user.id);
-              setIsAdmin(adminStatus);
+              const userAccessLevel = await checkAccessLevel(session.user.id);
+              setAccessLevel(userAccessLevel);
             } catch (error) {
-              console.error('AuthProvider: Failed to check admin status', error);
-              setIsAdmin(false);
+              console.error('AuthProvider: Failed to check access level', error);
+              setAccessLevel('user');
             }
           }, 0);
         } else {
-          console.log('AuthProvider: No user, setting admin to false');
-          setIsAdmin(false);
+          console.log('AuthProvider: No user, setting access level to null');
+          setAccessLevel(null);
         }
         
         // Always set loading to false after processing auth state
@@ -103,14 +107,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        // Check admin status for initial session
+        // Check access level for initial session
         setTimeout(async () => {
           try {
-            const adminStatus = await checkAdminStatus(session.user.id);
-            setIsAdmin(adminStatus);
+            const userAccessLevel = await checkAccessLevel(session.user.id);
+            setAccessLevel(userAccessLevel);
           } catch (error) {
-            console.error('AuthProvider: Failed to check initial admin status', error);
-            setIsAdmin(false);
+            console.error('AuthProvider: Failed to check initial access level', error);
+            setAccessLevel('user');
           }
         }, 0);
       }
@@ -146,7 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     console.log('AuthProvider: Signing out');
     await supabase.auth.signOut();
-    setIsAdmin(false);
+    setAccessLevel(null);
   };
 
   const resetPassword = async (email: string) => {
@@ -172,7 +176,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     user,
     session,
-    isAdmin,
+    isAdmin: accessLevel === 'admin',
+    isAI: accessLevel === 'ai',
+    accessLevel,
     signIn,
     signOut,
     resetPassword,
