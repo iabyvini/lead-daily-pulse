@@ -1,22 +1,10 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-
-type AccessLevel = 'user' | 'admin' | 'ai';
-
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  isAdmin: boolean;
-  isAI: boolean;
-  accessLevel: AccessLevel | null;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<{ error: any }>;
-  loading: boolean;
-  accessLevelLoading: boolean;
-}
+import { AuthContextType, AccessLevel } from '@/types/auth';
+import { useAccessLevel } from '@/hooks/useAccessLevel';
+import { useAuthMethods } from '@/hooks/useAuthMethods';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -35,93 +23,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [accessLevelLoading, setAccessLevelLoading] = useState(false);
 
-  // Function to check access level with improved error handling
-  const checkAccessLevel = async (userId: string, userEmail: string): Promise<AccessLevel> => {
-    try {
-      console.log('AuthProvider: Checking access level for user', userId, userEmail);
-      
-      // Special handling for known admin emails
-      const adminEmails = ['viniciusrodrigues@liguelead.com.br', 'patricia@liguelead.com.br'];
-      if (adminEmails.includes(userEmail)) {
-        console.log('AuthProvider: User is in admin emails list, should be admin');
-        
-        // Check if profile exists and update if necessary
-        const { data: profile, error: selectError } = await supabase
-          .from('profiles')
-          .select('access_level')
-          .eq('id', userId)
-          .single();
-        
-        if (selectError && selectError.code === 'PGRST116') {
-          // Profile doesn't exist, create it
-          console.log('AuthProvider: Creating admin profile for', userEmail);
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-              id: userId,
-              email: userEmail,
-              access_level: 'admin'
-            });
-          
-          if (insertError) {
-            console.error('AuthProvider: Error creating admin profile', insertError);
-            toast({
-              title: "⚠️ Erro de configuração",
-              description: "Erro ao configurar perfil de administrador. Contate o suporte.",
-              variant: "destructive",
-            });
-            return 'user';
-          }
-          return 'admin';
-        } else if (profile && profile.access_level !== 'admin') {
-          // Profile exists but is not admin, update it
-          console.log('AuthProvider: Updating profile to admin for', userEmail);
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ access_level: 'admin' })
-            .eq('id', userId);
-          
-          if (updateError) {
-            console.error('AuthProvider: Error updating profile to admin', updateError);
-            toast({
-              title: "⚠️ Erro de configuração",
-              description: "Erro ao atualizar perfil de administrador. Contate o suporte.",
-              variant: "destructive",
-            });
-            return 'user';
-          }
-          return 'admin';
-        } else if (profile) {
-          return profile.access_level || 'user';
-        }
-      }
-      
-      // For non-admin emails, check normally with timeout
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Access level check timeout')), 5000);
-      });
-      
-      const queryPromise = supabase
-        .from('profiles')
-        .select('access_level')
-        .eq('id', userId)
-        .single();
-      
-      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]);
-      
-      if (error) {
-        console.error('AuthProvider: Error checking access level', error);
-        return 'user';
-      }
-      
-      console.log('AuthProvider: Profile data', profile);
-      const level = profile?.access_level || 'user';
-      console.log('AuthProvider: Access level determined:', level);
-      return level;
-    } catch (error) {
-      console.error('AuthProvider: Access level check failed', error);
-      return 'user';
-    }
+  const { checkAccessLevel } = useAccessLevel();
+  const { signIn, signOut: authSignOut, resetPassword } = useAuthMethods();
+
+  const signOut = async () => {
+    await authSignOut();
+    setAccessLevel(null);
+    setAccessLevelLoading(false);
   };
 
   useEffect(() => {
@@ -213,48 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthProvider: Cleaning up subscription');
       subscription.unsubscribe();
     };
-  }, []);
-
-  const signIn = async (email: string, password: string) => {
-    console.log('AuthProvider: Attempting sign in for', email);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      console.log('AuthProvider: Sign in result', { error });
-      return { error };
-    } catch (error) {
-      console.error('AuthProvider: Sign in error', error);
-      return { error };
-    }
-  };
-
-  const signOut = async () => {
-    console.log('AuthProvider: Signing out');
-    await supabase.auth.signOut();
-    setAccessLevel(null);
-    setAccessLevelLoading(false);
-  };
-
-  const resetPassword = async (email: string) => {
-    console.log('AuthProvider: Sending password reset email to', email);
-    try {
-      const currentUrl = window.location.origin;
-      const redirectUrl = `${currentUrl}/reset-password`;
-      
-      console.log('AuthProvider: Using redirect URL:', redirectUrl);
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
-      });
-      console.log('AuthProvider: Password reset result', { error });
-      return { error };
-    } catch (error) {
-      console.error('AuthProvider: Password reset error', error);
-      return { error };
-    }
-  };
+  }, [checkAccessLevel]);
 
   const value = {
     user,
