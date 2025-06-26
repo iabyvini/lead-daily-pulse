@@ -58,12 +58,16 @@ const Auth = () => {
             description: error.message || "Credenciais inválidas para administrador",
             variant: "destructive",
           });
+          setIsLoading(false);
         } else {
-          console.log('Auth: Login successful');
+          console.log('Auth: Login successful, showing success message');
           toast({
             title: "✅ Login realizado com sucesso!",
             description: "Redirecionando para o dashboard...",
           });
+          
+          // Don't set loading to false here - let the auth state change handle the redirect
+          // The useEffect will handle the redirect when isAdmin becomes true
         }
       } catch (error: any) {
         console.error('Auth: Unexpected login error:', error);
@@ -72,7 +76,6 @@ const Auth = () => {
           description: error.message || "Erro interno",
           variant: "destructive",
         });
-      } finally {
         setIsLoading(false);
       }
     } else {
@@ -111,14 +114,16 @@ const Auth = () => {
     }
   };
 
-  // Show loading while checking auth state
-  if (loading || accessLevelLoading) {
+  // Show loading while checking auth state or during login process
+  if (loading || accessLevelLoading || (isLoading && mode === 'login')) {
     console.log('Auth: Showing loading state');
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-[#1bccae] mx-auto mb-4" />
-          <p className="text-gray-600">Verificando autenticação...</p>
+          <p className="text-gray-600">
+            {isLoading && mode === 'login' ? 'Redirecionando para o dashboard...' : 'Verificando autenticação...'}
+          </p>
         </div>
       </div>
     );
@@ -195,7 +200,7 @@ const Auth = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {mode === 'login' ? 'Verificando...' : 'Enviando...'}
+                  {mode === 'login' ? 'Redirecionando...' : 'Enviando...'}
                 </>
               ) : (
                 <>
