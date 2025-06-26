@@ -35,39 +35,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [accessLevelLoading, setAccessLevelLoading] = useState(false);
 
-  // Function to check access level with improved error handling
+  // Function to check access level with timeout and better error handling
   const checkAccessLevel = async (userId: string): Promise<AccessLevel> => {
     try {
       console.log('AuthProvider: Checking access level for user', userId);
-      setAccessLevelLoading(true);
       
-      const { data: profile, error } = await supabase
+      // Create a timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Access level check timeout')), 5000);
+      });
+      
+      // Race between the query and timeout
+      const queryPromise = supabase
         .from('profiles')
         .select('access_level')
         .eq('id', userId)
         .single();
       
+      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]);
+      
       if (error) {
         console.error('AuthProvider: Error checking access level', error);
+        // If profile doesn't exist, assume user level
         return 'user';
       }
       
       console.log('AuthProvider: Profile data', profile);
-      return profile?.access_level || 'user';
+      const level = profile?.access_level || 'user';
+      console.log('AuthProvider: Access level determined:', level);
+      return level;
     } catch (error) {
       console.error('AuthProvider: Access level check failed', error);
       return 'user';
-    } finally {
-      setAccessLevelLoading(false);
     }
   };
 
   useEffect(() => {
     console.log('AuthProvider: Setting up auth state listener');
+    let mounted = true;
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         console.log('AuthProvider: Auth state changed', { event, session: !!session });
         
         setSession(session);
@@ -75,12 +86,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user) {
           console.log('AuthProvider: User authenticated, checking access level');
+          setAccessLevelLoading(true);
+          
           try {
             const userAccessLevel = await checkAccessLevel(session.user.id);
-            setAccessLevel(userAccessLevel);
+            if (mounted) {
+              setAccessLevel(userAccessLevel);
+              console.log('AuthProvider: Access level set to:', userAccessLevel);
+            }
           } catch (error) {
             console.error('AuthProvider: Failed to check access level', error);
-            setAccessLevel('user');
+            if (mounted) {
+              setAccessLevel('user');
+            }
+          } finally {
+            if (mounted) {
+              setAccessLevelLoading(false);
+            }
           }
         } else {
           console.log('AuthProvider: No user, setting access level to null');
@@ -88,24 +110,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setAccessLevelLoading(false);
         }
         
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     );
 
     // Get initial session
     console.log('AuthProvider: Getting initial session');
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      
       console.log('AuthProvider: Initial session', { session: !!session });
       
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        setAccessLevelLoading(true);
         checkAccessLevel(session.user.id).then((userAccessLevel) => {
-          setAccessLevel(userAccessLevel);
+          if (mounted) {
+            setAccessLevel(userAccessLevel);
+            console.log('AuthProvider: Initial access level set to:', userAccessLevel);
+            setAccessLevelLoading(false);
+          }
         }).catch((error) => {
           console.error('AuthProvider: Failed to check initial access level', error);
-          setAccessLevel('user');
+          if (mounted) {
+            setAccessLevel('user');
+            setAccessLevelLoading(false);
+          }
         });
       } else {
         setAccessLevelLoading(false);
@@ -114,11 +148,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     }).catch((error) => {
       console.error('AuthProvider: Error getting initial session', error);
-      setLoading(false);
-      setAccessLevelLoading(false);
+      if (mounted) {
+        setLoading(false);
+        setAccessLevelLoading(false);
+      }
     });
 
     return () => {
+      mounted = false;
       console.log('AuthProvider: Cleaning up subscription');
       subscription.unsubscribe();
     };

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -29,11 +30,12 @@ interface MeetingDetail {
 }
 
 const Dashboard = () => {
-  const { user, isAdmin, signOut, loading } = useAuth();
+  const { user, isAdmin, signOut, loading, accessLevelLoading } = useAuth();
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [meetings, setMeetings] = useState<MeetingDetail[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,13 +43,19 @@ const Dashboard = () => {
       loading, 
       user: !!user, 
       isAdmin,
+      accessLevelLoading,
       userEmail: user?.email 
     });
 
-    // Se ainda está carregando, não fazer nada
-    if (loading) {
-      console.log('Dashboard: Still loading auth state, waiting...');
+    // Se ainda está carregando auth ou access level, não fazer nada
+    if (loading || accessLevelLoading) {
+      console.log('Dashboard: Still loading, waiting...', { loading, accessLevelLoading });
       return;
+    }
+
+    // Marcar que a verificação de auth foi concluída
+    if (!authChecked) {
+      setAuthChecked(true);
     }
 
     // Se não há usuário logado, redirecionar para auth
@@ -71,8 +79,10 @@ const Dashboard = () => {
 
     // Se chegou até aqui, usuário está logado e é admin
     console.log('Dashboard: User authenticated and is admin, fetching data');
-    fetchData();
-  }, [user, isAdmin, loading, navigate]);
+    if (!isLoadingData && reports.length === 0) {
+      fetchData();
+    }
+  }, [user, isAdmin, loading, accessLevelLoading, navigate, authChecked]);
 
   const fetchData = async () => {
     setIsLoadingData(true);
@@ -140,7 +150,7 @@ const Dashboard = () => {
   };
 
   // Mostrar loading enquanto verifica autenticação
-  if (loading) {
+  if (loading || accessLevelLoading) {
     console.log('Dashboard: Showing auth loading state');
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center">
@@ -152,10 +162,17 @@ const Dashboard = () => {
     );
   }
 
-  // Se não há usuário ou não é admin, não mostrar nada (redirecionamento já foi feito)
+  // Se não há usuário ou não é admin, mostrar carregamento enquanto redireciona
   if (!user || !isAdmin) {
-    console.log('Dashboard: No user or not admin, showing empty state');
-    return null;
+    console.log('Dashboard: No user or not admin, showing redirect state');
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-white flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1bccae] mx-auto mb-4" />
+          <p className="text-gray-600">Redirecionando...</p>
+        </div>
+      </div>
+    );
   }
 
   // Mostrar loading dos dados
