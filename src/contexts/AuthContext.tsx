@@ -30,83 +30,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAccessLevelLoading(false);
   };
 
-  // Function to check access level - moved inside component to avoid dependency issues
-  const checkAccessLevel = async (userId: string, userEmail: string): Promise<AccessLevel> => {
-    try {
-      console.log('AccessLevel: Checking access level for user', userId, userEmail);
-      
-      // Special handling for known admin emails
-      const adminEmails = ['viniciusrodrigues@liguelead.com.br', 'patricia@liguelead.com.br'];
-      if (adminEmails.includes(userEmail)) {
-        console.log('AccessLevel: User is in admin emails list, should be admin');
-        
-        // Check if profile exists and update if necessary
-        const { data: profile, error: selectError } = await supabase
-          .from('profiles')
-          .select('access_level')
-          .eq('id', userId)
-          .single();
-        
-        if (selectError && selectError.code === 'PGRST116') {
-          // Profile doesn't exist, create it
-          console.log('AccessLevel: Creating admin profile for', userEmail);
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .insert({
-              id: userId,
-              email: userEmail,
-              access_level: 'admin'
-            });
-          
-          if (insertError) {
-            console.error('AccessLevel: Error creating admin profile', insertError);
-            return 'user';
-          }
-          return 'admin';
-        } else if (profile && profile.access_level !== 'admin') {
-          // Profile exists but is not admin, update it
-          console.log('AccessLevel: Updating profile to admin for', userEmail);
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ access_level: 'admin' })
-            .eq('id', userId);
-          
-          if (updateError) {
-            console.error('AccessLevel: Error updating profile to admin', updateError);
-            return 'user';
-          }
-          return 'admin';
-        } else if (profile) {
-          return profile.access_level || 'user';
-        }
-      }
-      
-      // For non-admin emails, check normally with timeout
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Access level check timeout')), 5000);
-      });
-      
-      const queryPromise = supabase
-        .from('profiles')
-        .select('access_level')
-        .eq('id', userId)
-        .single();
-      
-      const { data: profile, error } = await Promise.race([queryPromise, timeoutPromise]);
-      
-      if (error) {
-        console.error('AccessLevel: Error checking access level', error);
-        return 'user';
-      }
-      
-      console.log('AccessLevel: Profile data', profile);
-      const level = profile?.access_level || 'user';
-      console.log('AccessLevel: Access level determined:', level);
-      return level;
-    } catch (error) {
-      console.error('AccessLevel: Access level check failed', error);
-      return 'user';
+  // Simplified access level check
+  const checkAccessLevel = async (userEmail: string): Promise<AccessLevel> => {
+    console.log('AccessLevel: Checking access level for email:', userEmail);
+    
+    // Direct admin check - if email is in admin list, return admin immediately
+    const adminEmails = ['viniciusrodrigues@liguelead.com.br', 'patricia@liguelead.com.br'];
+    if (adminEmails.includes(userEmail)) {
+      console.log('AccessLevel: Email is admin, returning admin level');
+      return 'admin';
     }
+    
+    console.log('AccessLevel: Email is not admin, returning user level');
+    return 'user';
   };
 
   useEffect(() => {
@@ -128,7 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setAccessLevelLoading(true);
           
           try {
-            const userAccessLevel = await checkAccessLevel(session.user.id, session.user.email || '');
+            const userAccessLevel = await checkAccessLevel(session.user.email || '');
             if (mounted) {
               setAccessLevel(userAccessLevel);
               console.log('AuthProvider: Access level set to:', userAccessLevel);
@@ -167,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         setAccessLevelLoading(true);
-        checkAccessLevel(session.user.id, session.user.email || '').then((userAccessLevel) => {
+        checkAccessLevel(session.user.email || '').then((userAccessLevel) => {
           if (mounted) {
             setAccessLevel(userAccessLevel);
             console.log('AuthProvider: Initial access level set to:', userAccessLevel);
@@ -198,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthProvider: Cleaning up subscription');
       subscription.unsubscribe();
     };
-  }, []); // Empty dependency array to avoid infinite loops
+  }, []);
 
   const value = {
     user,
