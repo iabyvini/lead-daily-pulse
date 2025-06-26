@@ -1,7 +1,7 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 type AccessLevel = 'user' | 'admin' | 'ai';
 
@@ -35,17 +35,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [accessLevelLoading, setAccessLevelLoading] = useState(false);
 
-  // Function to check access level with timeout and better error handling
-  const checkAccessLevel = async (userId: string): Promise<AccessLevel> => {
+  // Function to check access level with improved error handling
+  const checkAccessLevel = async (userId: string, userEmail: string): Promise<AccessLevel> => {
     try {
-      console.log('AuthProvider: Checking access level for user', userId);
+      console.log('AuthProvider: Checking access level for user', userId, userEmail);
       
-      // Create a timeout promise
+      // Special handling for known admin emails
+      const adminEmails = ['viniciusrodrigues@liguelead.com.br', 'patricia@liguelead.com.br'];
+      if (adminEmails.includes(userEmail)) {
+        console.log('AuthProvider: User is in admin emails list, should be admin');
+        
+        // Check if profile exists and update if necessary
+        const { data: profile, error: selectError } = await supabase
+          .from('profiles')
+          .select('access_level')
+          .eq('id', userId)
+          .single();
+        
+        if (selectError && selectError.code === 'PGRST116') {
+          // Profile doesn't exist, create it
+          console.log('AuthProvider: Creating admin profile for', userEmail);
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: userId,
+              email: userEmail,
+              access_level: 'admin'
+            });
+          
+          if (insertError) {
+            console.error('AuthProvider: Error creating admin profile', insertError);
+            toast({
+              title: "⚠️ Erro de configuração",
+              description: "Erro ao configurar perfil de administrador. Contate o suporte.",
+              variant: "destructive",
+            });
+            return 'user';
+          }
+          return 'admin';
+        } else if (profile && profile.access_level !== 'admin') {
+          // Profile exists but is not admin, update it
+          console.log('AuthProvider: Updating profile to admin for', userEmail);
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ access_level: 'admin' })
+            .eq('id', userId);
+          
+          if (updateError) {
+            console.error('AuthProvider: Error updating profile to admin', updateError);
+            toast({
+              title: "⚠️ Erro de configuração",
+              description: "Erro ao atualizar perfil de administrador. Contate o suporte.",
+              variant: "destructive",
+            });
+            return 'user';
+          }
+          return 'admin';
+        } else if (profile) {
+          return profile.access_level || 'user';
+        }
+      }
+      
+      // For non-admin emails, check normally with timeout
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('Access level check timeout')), 5000);
       });
       
-      // Race between the query and timeout
       const queryPromise = supabase
         .from('profiles')
         .select('access_level')
@@ -56,7 +111,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error('AuthProvider: Error checking access level', error);
-        // If profile doesn't exist, assume user level
         return 'user';
       }
       
@@ -89,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setAccessLevelLoading(true);
           
           try {
-            const userAccessLevel = await checkAccessLevel(session.user.id);
+            const userAccessLevel = await checkAccessLevel(session.user.id, session.user.email || '');
             if (mounted) {
               setAccessLevel(userAccessLevel);
               console.log('AuthProvider: Access level set to:', userAccessLevel);
@@ -128,7 +182,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (session?.user) {
         setAccessLevelLoading(true);
-        checkAccessLevel(session.user.id).then((userAccessLevel) => {
+        checkAccessLevel(session.user.id, session.user.email || '').then((userAccessLevel) => {
           if (mounted) {
             setAccessLevel(userAccessLevel);
             console.log('AuthProvider: Initial access level set to:', userAccessLevel);
