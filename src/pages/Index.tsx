@@ -5,10 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Send, Users, BarChart3, CalendarDays, Clock, User, Briefcase, Phone, MessageSquare, Bot, Shield } from 'lucide-react';
+import { Loader2, Send, Users, BarChart3, CalendarDays, Clock, User, Briefcase, Phone, MessageSquare, Bot, Shield, AlertTriangle } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -315,6 +316,13 @@ const Index = () => {
                           Remover
                         </Button>
                       </div>
+                      
+                      <Alert className="mb-4 border-orange-200 bg-orange-50">
+                        <AlertTriangle className="h-4 w-4 text-orange-600" />
+                        <AlertDescription className="text-orange-800">
+                          <strong>Importante:</strong> Use o mesmo nome do card do RD CRM
+                        </AlertDescription>
+                      </Alert>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
