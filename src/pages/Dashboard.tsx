@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { Loader2, LogOut, BarChart3, Users, Calendar, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ExportButtons } from '@/components/dashboard/ExportButtons';
+import { EditableVendorCell } from '@/components/dashboard/EditableVendorCell';
 
 interface DailyReport {
   id: string;
@@ -37,6 +37,16 @@ const Dashboard = () => {
   const [error, setError] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
+
+  const handleVendorUpdate = (meetingId: string, newVendor: string) => {
+    setMeetings(prevMeetings => 
+      prevMeetings.map(meeting => 
+        meeting.id === meetingId 
+          ? { ...meeting, vendedor_responsavel: newVendor }
+          : meeting
+      )
+    );
+  };
 
   useEffect(() => {
     console.log('Dashboard: useEffect triggered', { 
@@ -327,7 +337,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Meetings Table */}
+        {/* Meetings Table with Editable Vendor */}
         <Card className="border-emerald-200">
           <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white">
             <CardTitle>Detalhes das Reuniões ({meetings.length} registros)</CardTitle>
@@ -359,7 +369,13 @@ const Dashboard = () => {
                           {meeting.status}
                         </span>
                       </TableCell>
-                      <TableCell>{meeting.vendedor_responsavel}</TableCell>
+                      <TableCell>
+                        <EditableVendorCell
+                          meetingId={meeting.id}
+                          currentVendor={meeting.vendedor_responsavel || ''}
+                          onUpdate={(newVendor) => handleVendorUpdate(meeting.id, newVendor)}
+                        />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
