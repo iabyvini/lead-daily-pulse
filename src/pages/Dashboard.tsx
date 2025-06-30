@@ -147,7 +147,11 @@ const Dashboard = () => {
 
         <ReportsTable reports={reports} />
 
-        <MeetingsTable meetings={meetings} onVendorUpdate={handleVendorUpdate} />
+        <MeetingsTable 
+          meetings={meetings} 
+          reports={reports}
+          onVendorUpdate={handleVendorUpdate} 
+        />
       </div>
     </div>
   );

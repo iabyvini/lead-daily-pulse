@@ -12,14 +12,22 @@ interface MeetingDetail {
   horario_agendamento: string;
   status: string;
   vendedor_responsavel: string;
+  report_id?: string;
 }
 
 interface MeetingsTableProps {
   meetings: MeetingDetail[];
+  reports: any[];
   onVendorUpdate: (meetingId: string, newVendor: string) => void;
 }
 
-export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, onVendorUpdate }) => {
+export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, reports, onVendorUpdate }) => {
+  const getSDRFromReportId = (reportId: string | null | undefined) => {
+    if (!reportId) return 'N/A';
+    const report = reports.find(r => r.id === reportId);
+    return report?.vendedor || 'N/A';
+  };
+
   return (
     <Card className="border-emerald-200">
       <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white">
@@ -34,6 +42,7 @@ export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, onVendor
                 <TableHead>Data</TableHead>
                 <TableHead>Horário</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>SDR Responsável</TableHead>
                 <TableHead>Vendedor Responsável</TableHead>
               </TableRow>
             </TableHeader>
@@ -51,6 +60,9 @@ export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, onVendor
                     }`}>
                       {meeting.status}
                     </span>
+                  </TableCell>
+                  <TableCell className="font-medium text-[#1bccae]">
+                    {getSDRFromReportId(meeting.report_id)}
                   </TableCell>
                   <TableCell>
                     <EditableVendorCell
