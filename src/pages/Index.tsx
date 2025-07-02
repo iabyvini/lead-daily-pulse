@@ -87,64 +87,157 @@ const Index = () => {
 
     setIsLoading(true);
 
+    // Prepare submission data for audit
+    const submissionData = {
+      vendedor: formData.vendedor,
+      dataRegistro: formData.dataRegistro,
+      reunioesAgendadas: parseInt(formData.reunioesAgendadas),
+      reunioesRealizadas: parseInt(formData.reunioesRealizadas),
+      reunioes: formData.reunioes
+        .filter(reuniao => reuniao.nomeLead && reuniao.dataAgendamento && reuniao.horarioAgendamento)
+        .map(reuniao => ({
+          nomeLead: reuniao.nomeLead,
+          dataAgendamento: reuniao.dataAgendamento,
+          horarioAgendamento: reuniao.horarioAgendamento,
+          status: reuniao.status,
+          nomeVendedor: reuniao.nomeVendedor
+        }))
+    };
+
+    // Log attempt start
+    console.log(`[${new Date().toISOString()}] Iniciando envio de relatório para ${formData.vendedor}`);
+    console.log('Dados a serem enviados:', submissionData);
+
     try {
-      // Prepare data for the email function
-      const emailData = {
-        vendedor: formData.vendedor,
-        dataRegistro: formData.dataRegistro,
-        reunioesAgendadas: parseInt(formData.reunioesAgendadas),
-        reunioesRealizadas: parseInt(formData.reunioesRealizadas),
-        reunioes: formData.reunioes
-          .filter(reuniao => reuniao.nomeLead && reuniao.dataAgendamento && reuniao.horarioAgendamento)
-          .map(reuniao => ({
-            nomeLead: reuniao.nomeLead,
-            dataAgendamento: reuniao.dataAgendamento,
-            horarioAgendamento: reuniao.horarioAgendamento,
-            status: reuniao.status,
-            vendedorResponsavel: reuniao.nomeVendedor
-          }))
-      };
-
-      console.log('Enviando dados para função de email:', emailData);
-
-      // Call the send-report-email function without authentication
-      const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-report-email', {
-        body: emailData
-      });
-
-      console.log('Resultado da função de email:', emailResult);
-
-      if (emailError) {
-        console.error('Erro na função de email:', emailError);
-        throw new Error(`Erro ao enviar email: ${emailError.message}`);
+      // Check connectivity first
+      console.log('Verificando conectividade...');
+      const { error: connectivityError } = await supabase.from('profiles').select('id').limit(1);
+      if (connectivityError) {
+        throw new Error('Problema de conectividade com o servidor. Verifique sua conexão.');
       }
 
-      if (!emailResult?.success) {
-        console.error('Função retornou erro:', emailResult?.error);
-        throw new Error(emailResult?.error || 'Erro desconhecido ao enviar email');
+      // Log audit attempt
+      await supabase.from('submission_audit').insert({
+        user_email: formData.vendedor,
+        submission_data: submissionData,
+        status: 'retry',
+        error_message: null,
+        user_agent: navigator.userAgent
+      }).catch(err => console.warn('Falha ao registrar auditoria:', err));
+
+      console.log('Enviando dados para função de email...');
+
+      // Call the send-report-email function with retry logic
+      let attempt = 1;
+      const maxAttempts = 3;
+      let lastError: any = null;
+
+      while (attempt <= maxAttempts) {
+        try {
+          console.log(`Tentativa ${attempt} de ${maxAttempts}`);
+          
+          const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-report-email', {
+            body: submissionData
+          });
+
+          console.log(`Resultado da tentativa ${attempt}:`, emailResult);
+
+          if (emailError) {
+            console.error(`Erro na função de email (tentativa ${attempt}):`, emailError);
+            lastError = new Error(`Erro ao enviar email: ${emailError.message}`);
+            
+            if (attempt < maxAttempts) {
+              console.log(`Aguardando antes da próxima tentativa...`);
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Backoff
+              attempt++;
+              continue;
+            }
+            throw lastError;
+          }
+
+          if (!emailResult?.success) {
+            console.error(`Função retornou erro (tentativa ${attempt}):`, emailResult?.error);
+            lastError = new Error(emailResult?.error || 'Erro desconhecido ao enviar email');
+            
+            if (attempt < maxAttempts) {
+              console.log(`Aguardando antes da próxima tentativa...`);
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Backoff
+              attempt++;
+              continue;
+            }
+            throw lastError;
+          }
+
+          // Success!
+          console.log(`✅ Relatório enviado com sucesso na tentativa ${attempt}!`);
+          
+          // Log successful audit
+          await supabase.from('submission_audit').insert({
+            user_email: formData.vendedor,
+            submission_data: submissionData,
+            status: 'success',
+            error_message: null,
+            user_agent: navigator.userAgent
+          }).catch(err => console.warn('Falha ao registrar auditoria de sucesso:', err));
+
+          toast({
+            title: "✅ Relatório enviado com sucesso!",
+            description: `Seu relatório foi salvo no sistema e enviado por email (tentativa ${attempt}).`,
+          });
+
+          // Reset form
+          setFormData({
+            vendedor: '',
+            dataRegistro: '',
+            reunioesAgendadas: '',
+            reunioesRealizadas: '',
+            reunioes: []
+          });
+
+          return; // Exit function on success
+
+        } catch (attemptError: any) {
+          console.error(`Erro na tentativa ${attempt}:`, attemptError);
+          lastError = attemptError;
+          
+          if (attempt < maxAttempts) {
+            console.log(`Aguardando antes da próxima tentativa...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Backoff
+          }
+          attempt++;
+        }
       }
 
-      toast({
-        title: "✅ Relatório enviado com sucesso!",
-        description: "Seu relatório foi salvo no sistema e enviado por email.",
-      });
-
-      // Reset form
-      setFormData({
-        vendedor: '',
-        dataRegistro: '',
-        reunioesAgendadas: '',
-        reunioesRealizadas: '',
-        reunioes: []
-      });
+      // If we get here, all attempts failed
+      throw lastError || new Error('Todas as tentativas falharam');
 
     } catch (error: any) {
-      console.error('Error submitting report:', error);
+      console.error(`❌ Erro final ao enviar relatório para ${formData.vendedor}:`, error);
+      
+      // Log failed audit
+      await supabase.from('submission_audit').insert({
+        user_email: formData.vendedor,
+        submission_data: submissionData,
+        status: 'error',
+        error_message: error.message || 'Erro desconhecido',
+        user_agent: navigator.userAgent
+      }).catch(err => console.warn('Falha ao registrar auditoria de erro:', err));
+
       toast({
         title: "❌ Erro ao enviar relatório",
-        description: error.message || "Ocorreu um erro interno. Tente novamente.",
+        description: `${error.message || "Ocorreu um erro interno. Tente novamente."} (Dados salvos localmente para análise)`,
         variant: "destructive",
       });
+
+      // Save to localStorage as backup
+      const backupKey = `failed_report_${formData.vendedor}_${Date.now()}`;
+      localStorage.setItem(backupKey, JSON.stringify({
+        ...submissionData,
+        timestamp: new Date().toISOString(),
+        error: error.message
+      }));
+      console.log(`Backup salvo em localStorage: ${backupKey}`);
+
     } finally {
       setIsLoading(false);
     }
