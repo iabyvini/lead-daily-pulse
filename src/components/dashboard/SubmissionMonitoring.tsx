@@ -31,9 +31,25 @@ const SubmissionMonitoring = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchAuditLogs = async () => {
-    // Temporarily disabled until migration is run
-    console.log('Audit logs feature temporarily disabled - migration needed');
-    setAuditLogs([]);
+    const { data, error } = await supabase
+      .from('submission_audit')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error('Error fetching audit logs:', error);
+      toast({
+        title: "❌ Erro ao carregar logs",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setAuditLogs((data || []).map(log => ({
+        ...log,
+        status: log.status as 'success' | 'error' | 'retry'
+      })));
+    }
   };
 
   const analyzeSubmissions = async () => {

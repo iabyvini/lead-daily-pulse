@@ -86,6 +86,30 @@ export type Database = {
           },
         ]
       }
+      missing_reports_alerts: {
+        Row: {
+          alert_sent: boolean | null
+          created_at: string
+          id: string
+          missing_date: string
+          sdr_name: string
+        }
+        Insert: {
+          alert_sent?: boolean | null
+          created_at?: string
+          id?: string
+          missing_date: string
+          sdr_name: string
+        }
+        Update: {
+          alert_sent?: boolean | null
+          created_at?: string
+          id?: string
+          missing_date?: string
+          sdr_name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           access_level: Database["public"]["Enums"]["access_level"]
@@ -107,6 +131,36 @@ export type Database = {
           email?: string | null
           id?: string
           is_admin?: boolean | null
+        }
+        Relationships: []
+      }
+      submission_audit: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          status: string
+          submission_data: Json
+          user_agent: string | null
+          user_email: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          status: string
+          submission_data: Json
+          user_agent?: string | null
+          user_email: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          status?: string
+          submission_data?: Json
+          user_agent?: string | null
+          user_email?: string
         }
         Relationships: []
       }

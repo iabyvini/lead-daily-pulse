@@ -116,8 +116,18 @@ const Index = () => {
         throw new Error('Problema de conectividade com o servidor. Verifique sua conexão.');
       }
 
-      // Log audit attempt (temporarily disabled until migration is run)
-      console.log('Tentativa de envio registrada localmente');
+      // Log audit attempt
+      try {
+        await supabase.from('submission_audit').insert({
+          user_email: formData.vendedor,
+          submission_data: submissionData as any,
+          status: 'retry',
+          error_message: null,
+          user_agent: navigator.userAgent
+        });
+      } catch (err) {
+        console.warn('Falha ao registrar auditoria:', err);
+      }
 
       console.log('Enviando dados para função de email...');
 
@@ -165,8 +175,18 @@ const Index = () => {
           // Success!
           console.log(`✅ Relatório enviado com sucesso na tentativa ${attempt}!`);
           
-          // Log successful audit (temporarily disabled until migration is run)
-          console.log('✅ Sucesso registrado localmente');
+          // Log successful audit
+          try {
+            await supabase.from('submission_audit').insert({
+              user_email: formData.vendedor,
+              submission_data: submissionData as any,
+              status: 'success',
+              error_message: null,
+              user_agent: navigator.userAgent
+            });
+          } catch (err) {
+            console.warn('Falha ao registrar auditoria de sucesso:', err);
+          }
 
           toast({
             title: "✅ Relatório enviado com sucesso!",
@@ -202,8 +222,18 @@ const Index = () => {
     } catch (error: any) {
       console.error(`❌ Erro final ao enviar relatório para ${formData.vendedor}:`, error);
       
-      // Log failed audit (temporarily disabled until migration is run)
-      console.error('❌ Erro registrado localmente:', error.message);
+      // Log failed audit
+      try {
+        await supabase.from('submission_audit').insert({
+          user_email: formData.vendedor,
+          submission_data: submissionData as any,
+          status: 'error',
+          error_message: error.message || 'Erro desconhecido',
+          user_agent: navigator.userAgent
+        });
+      } catch (err) {
+        console.warn('Falha ao registrar auditoria de erro:', err);
+      }
 
       toast({
         title: "❌ Erro ao enviar relatório",
