@@ -116,14 +116,8 @@ const Index = () => {
         throw new Error('Problema de conectividade com o servidor. Verifique sua conexão.');
       }
 
-      // Log audit attempt
-      await supabase.from('submission_audit').insert({
-        user_email: formData.vendedor,
-        submission_data: submissionData,
-        status: 'retry',
-        error_message: null,
-        user_agent: navigator.userAgent
-      }).catch(err => console.warn('Falha ao registrar auditoria:', err));
+      // Log audit attempt (temporarily disabled until migration is run)
+      console.log('Tentativa de envio registrada localmente');
 
       console.log('Enviando dados para função de email...');
 
@@ -171,14 +165,8 @@ const Index = () => {
           // Success!
           console.log(`✅ Relatório enviado com sucesso na tentativa ${attempt}!`);
           
-          // Log successful audit
-          await supabase.from('submission_audit').insert({
-            user_email: formData.vendedor,
-            submission_data: submissionData,
-            status: 'success',
-            error_message: null,
-            user_agent: navigator.userAgent
-          }).catch(err => console.warn('Falha ao registrar auditoria de sucesso:', err));
+          // Log successful audit (temporarily disabled until migration is run)
+          console.log('✅ Sucesso registrado localmente');
 
           toast({
             title: "✅ Relatório enviado com sucesso!",
@@ -214,14 +202,8 @@ const Index = () => {
     } catch (error: any) {
       console.error(`❌ Erro final ao enviar relatório para ${formData.vendedor}:`, error);
       
-      // Log failed audit
-      await supabase.from('submission_audit').insert({
-        user_email: formData.vendedor,
-        submission_data: submissionData,
-        status: 'error',
-        error_message: error.message || 'Erro desconhecido',
-        user_agent: navigator.userAgent
-      }).catch(err => console.warn('Falha ao registrar auditoria de erro:', err));
+      // Log failed audit (temporarily disabled until migration is run)
+      console.error('❌ Erro registrado localmente:', error.message);
 
       toast({
         title: "❌ Erro ao enviar relatório",

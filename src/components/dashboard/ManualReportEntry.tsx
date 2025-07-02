@@ -63,17 +63,8 @@ const ManualReportEntry = () => {
         throw reportError;
       }
 
-      // Log the manual entry in audit table
-      await supabase
-        .from('submission_audit')
-        .insert({
-          user_email: `admin_manual_entry_for_${formData.vendedor}`,
-          submission_data: formData,
-          status: 'success',
-          error_message: `Manual entry by admin - ${formData.observacoes || 'No observations'}`,
-          user_agent: navigator.userAgent
-        })
-        .catch(err => console.warn('Failed to log manual entry audit:', err));
+      // Log the manual entry (temporarily disabled until migration is run)
+      console.log('Manual entry logged locally:', formData);
 
       toast({
         title: "✅ Relatório adicionado manualmente",
