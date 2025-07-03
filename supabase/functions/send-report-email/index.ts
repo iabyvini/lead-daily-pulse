@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
@@ -22,7 +23,7 @@ interface ReportData {
     dataAgendamento: string;
     horarioAgendamento: string;
     status: string;
-    vendedorResponsavel: string;
+    nomeVendedor: string;
   }>;
 }
 
@@ -57,20 +58,20 @@ function validateReportData(data: any): { isValid: boolean; errors: string[] } {
   // Validate meetings array
   if (data.reunioes && Array.isArray(data.reunioes)) {
     data.reunioes.forEach((reuniao: any, index: number) => {
-      if (!reuniao.nomeLead || typeof reuniao.nomeLead !== 'string' || reuniao.nomeLead.trim().length === 0) {
-        errors.push(`Nome do lead é obrigatório na reunião ${index + 1}`);
+      if (reuniao.nomeLead && typeof reuniao.nomeLead !== 'string') {
+        errors.push(`Nome do lead deve ser texto na reunião ${index + 1}`);
       }
-      if (!reuniao.dataAgendamento || typeof reuniao.dataAgendamento !== 'string') {
-        errors.push(`Data de agendamento é obrigatória na reunião ${index + 1}`);
+      if (reuniao.dataAgendamento && typeof reuniao.dataAgendamento !== 'string') {
+        errors.push(`Data de agendamento deve ser texto na reunião ${index + 1}`);
       }
-      if (!reuniao.horarioAgendamento || typeof reuniao.horarioAgendamento !== 'string') {
-        errors.push(`Horário de agendamento é obrigatório na reunião ${index + 1}`);
+      if (reuniao.horarioAgendamento && typeof reuniao.horarioAgendamento !== 'string') {
+        errors.push(`Horário de agendamento deve ser texto na reunião ${index + 1}`);
       }
-      if (!reuniao.status || typeof reuniao.status !== 'string') {
-        errors.push(`Status é obrigatório na reunião ${index + 1}`);
+      if (reuniao.status && typeof reuniao.status !== 'string') {
+        errors.push(`Status deve ser texto na reunião ${index + 1}`);
       }
-      if (!reuniao.vendedorResponsavel || typeof reuniao.vendedorResponsavel !== 'string') {
-        errors.push(`Vendedor responsável é obrigatório na reunião ${index + 1}`);
+      if (reuniao.nomeVendedor && typeof reuniao.nomeVendedor !== 'string') {
+        errors.push(`Nome do vendedor deve ser texto na reunião ${index + 1}`);
       }
     });
   }
@@ -90,7 +91,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('Processing report submission without authentication');
+    console.log('Processing report submission');
 
     // Parse and validate request data
     const reportData: ReportData = await req.json();
@@ -129,7 +130,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Erro interno do servidor' 
+          error: 'Erro ao salvar relatório: ' + reportError.message
         }),
         {
           status: 500,
@@ -140,7 +141,7 @@ serve(async (req) => {
 
     console.log('Relatório salvo:', reportRecord);
 
-    // Save ALL meeting details if any - including empty ones for debugging
+    // Save ALL meeting details if any
     if (reportData.reunioes && reportData.reunioes.length > 0) {
       console.log(`Salvando ${reportData.reunioes.length} detalhes de reuniões...`);
       
@@ -150,7 +151,6 @@ serve(async (req) => {
       );
       
       console.log(`Reuniões válidas filtradas: ${validMeetings.length}`);
-      console.log('Reuniões válidas:', JSON.stringify(validMeetings, null, 2));
 
       if (validMeetings.length > 0) {
         const meetingDetails = validMeetings.map(reuniao => ({
@@ -159,7 +159,7 @@ serve(async (req) => {
           data_agendamento: reuniao.dataAgendamento,
           horario_agendamento: reuniao.horarioAgendamento,
           status: reuniao.status,
-          vendedor_responsavel: reuniao.vendedorResponsavel ? reuniao.vendedorResponsavel.trim() : '',
+          vendedor_responsavel: reuniao.nomeVendedor ? reuniao.nomeVendedor.trim() : null,
         }));
 
         console.log('Inserindo detalhes das reuniões:', JSON.stringify(meetingDetails, null, 2));
@@ -172,16 +172,25 @@ serve(async (req) => {
         if (meetingsError) {
           console.error('Erro ao salvar detalhes das reuniões:', meetingsError);
           // Log the error but don't fail the entire operation
-          console.error('Detalhes do erro:', JSON.stringify(meetingsError, null, 2));
         } else {
           console.log(`✅ ${meetingsData?.length || 0} detalhes de reuniões salvos com sucesso!`);
-          console.log('Dados salvos:', JSON.stringify(meetingsData, null, 2));
         }
-      } else {
-        console.log('Nenhuma reunião válida encontrada para salvar');
       }
-    } else {
-      console.log('Nenhuma reunião fornecida no relatório');
+    }
+
+    // Try to log audit - don't fail if this fails
+    try {
+      await supabase
+        .from('submission_audit')
+        .insert({
+          user_email: reportData.vendedor,
+          submission_data: reportData as any,
+          status: 'success',
+          error_message: null,
+          user_agent: req.headers.get('user-agent') || 'Unknown'
+        });
+    } catch (auditError) {
+      console.warn('Failed to log audit (non-critical):', auditError);
     }
 
     // Prepare email content with sanitized data
@@ -189,7 +198,7 @@ serve(async (req) => {
       ? reportData.reunioes
           .filter(r => r.nomeLead && r.nomeLead.trim().length > 0)
           .map(r => 
-            `- ${r.nomeLead.trim()} | ${r.dataAgendamento} ${r.horarioAgendamento} | Status: ${r.status} | Responsável: ${r.vendedorResponsavel ? r.vendedorResponsavel.trim() : 'N/A'}`
+            `- ${r.nomeLead.trim()} | ${r.dataAgendamento} ${r.horarioAgendamento} | Status: ${r.status} | Responsável: ${r.nomeVendedor ? r.nomeVendedor.trim() : 'N/A'}`
           ).join('\n')
       : 'Nenhuma reunião registrada.';
 
@@ -274,7 +283,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: 'Erro interno do servidor' 
+        error: 'Erro interno do servidor: ' + error.message
       }),
       {
         status: 500,
