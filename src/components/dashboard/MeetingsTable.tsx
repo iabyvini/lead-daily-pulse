@@ -2,7 +2,10 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { format } from 'date-fns';
+import { EditableTextCell } from './EditableTextCell';
+import { EditableDateCell } from './EditableDateCell';
+import { EditableTimeCell } from './EditableTimeCell';
+import { EditableStatusCell } from './EditableStatusCell';
 import { EditableVendorCell } from './EditableVendorCell';
 
 interface MeetingDetail {
@@ -19,9 +22,10 @@ interface MeetingsTableProps {
   meetings: MeetingDetail[];
   reports: any[];
   onVendorUpdate: (meetingId: string, newVendor: string) => void;
+  onMeetingUpdate: (meetingId: string, field: string, value: string) => void;
 }
 
-export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, reports, onVendorUpdate }) => {
+export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, reports, onVendorUpdate, onMeetingUpdate }) => {
   const getSDRFromReportId = (reportId: string | null | undefined) => {
     if (!reportId) return 'N/A';
     const report = reports.find(r => r.id === reportId);
@@ -49,17 +53,35 @@ export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, reports,
             <TableBody>
               {meetings.map((meeting) => (
                 <TableRow key={meeting.id}>
-                  <TableCell className="font-medium">{meeting.nome_lead}</TableCell>
-                  <TableCell>{format(new Date(meeting.data_agendamento), 'dd/MM/yyyy')}</TableCell>
-                  <TableCell>{meeting.horario_agendamento}</TableCell>
+                  <TableCell className="font-medium">
+                    <EditableTextCell
+                      meetingId={meeting.id}
+                      currentValue={meeting.nome_lead}
+                      fieldName="nome_lead"
+                      fieldLabel="Nome do Lead"
+                      onUpdate={(fieldName, newValue) => onMeetingUpdate(meeting.id, fieldName, newValue)}
+                    />
+                  </TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      meeting.status === 'Realizado' ? 'bg-emerald-100 text-emerald-800' :
-                      meeting.status === 'Agendado' ? 'bg-blue-100 text-blue-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {meeting.status}
-                    </span>
+                    <EditableDateCell
+                      meetingId={meeting.id}
+                      currentValue={meeting.data_agendamento}
+                      onUpdate={(newValue) => onMeetingUpdate(meeting.id, 'data_agendamento', newValue)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <EditableTimeCell
+                      meetingId={meeting.id}
+                      currentValue={meeting.horario_agendamento}
+                      onUpdate={(newValue) => onMeetingUpdate(meeting.id, 'horario_agendamento', newValue)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <EditableStatusCell
+                      meetingId={meeting.id}
+                      currentValue={meeting.status}
+                      onUpdate={(newValue) => onMeetingUpdate(meeting.id, 'status', newValue)}
+                    />
                   </TableCell>
                   <TableCell className="font-medium text-[#1bccae]">
                     {getSDRFromReportId(meeting.report_id)}

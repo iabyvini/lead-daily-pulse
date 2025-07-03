@@ -88,6 +88,16 @@ export const useDashboardData = () => {
     );
   };
 
+  const handleMeetingUpdate = (meetingId: string, field: string, value: string) => {
+    setMeetings(prevMeetings => 
+      prevMeetings.map(meeting => 
+        meeting.id === meetingId 
+          ? { ...meeting, [field]: value }
+          : meeting
+      )
+    );
+  };
+
   const calculateTotals = () => {
     const totalAgendadas = reports.reduce((sum, report) => sum + report.reunioes_agendadas, 0);
     const totalRealizadas = reports.reduce((sum, report) => sum + report.reunioes_realizadas, 0);
@@ -103,6 +113,7 @@ export const useDashboardData = () => {
     error,
     fetchData,
     handleVendorUpdate,
+    handleMeetingUpdate,
     calculateTotals
   };
 };
