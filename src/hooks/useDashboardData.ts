@@ -106,6 +106,10 @@ export const useDashboardData = () => {
     return { totalAgendadas, totalRealizadas, totalSDRs };
   };
 
+  const handleMeetingAdded = () => {
+    fetchData();
+  };
+
   return {
     reports,
     meetings,
@@ -114,6 +118,7 @@ export const useDashboardData = () => {
     fetchData,
     handleVendorUpdate,
     handleMeetingUpdate,
+    handleMeetingAdded,
     calculateTotals
   };
 };

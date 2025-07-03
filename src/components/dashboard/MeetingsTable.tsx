@@ -7,6 +7,7 @@ import { EditableDateCell } from './EditableDateCell';
 import { EditableTimeCell } from './EditableTimeCell';
 import { EditableStatusCell } from './EditableStatusCell';
 import { EditableVendorCell } from './EditableVendorCell';
+import { AddMeetingForm } from './AddMeetingForm';
 
 interface MeetingDetail {
   id: string;
@@ -23,9 +24,10 @@ interface MeetingsTableProps {
   reports: any[];
   onVendorUpdate: (meetingId: string, newVendor: string) => void;
   onMeetingUpdate: (meetingId: string, field: string, value: string) => void;
+  onMeetingAdded: () => void;
 }
 
-export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, reports, onVendorUpdate, onMeetingUpdate }) => {
+export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, reports, onVendorUpdate, onMeetingUpdate, onMeetingAdded }) => {
   const getSDRFromReportId = (reportId: string | null | undefined) => {
     if (!reportId) return 'N/A';
     const report = reports.find(r => r.id === reportId);
@@ -35,7 +37,10 @@ export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, reports,
   return (
     <Card className="border-emerald-200">
       <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white">
-        <CardTitle>Detalhes das Reuniões ({meetings.length} registros)</CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle>Detalhes das Reuniões ({meetings.length} registros)</CardTitle>
+          <AddMeetingForm reports={reports} onMeetingAdded={onMeetingAdded} />
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         {meetings.length > 0 ? (

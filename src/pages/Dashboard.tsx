@@ -23,6 +23,7 @@ const Dashboard = () => {
     fetchData,
     handleVendorUpdate,
     handleMeetingUpdate,
+    handleMeetingAdded,
     calculateTotals
   } = useDashboardData();
 
@@ -153,6 +154,7 @@ const Dashboard = () => {
           reports={reports}
           onVendorUpdate={handleVendorUpdate}
           onMeetingUpdate={handleMeetingUpdate}
+          onMeetingAdded={handleMeetingAdded}
         />
       </div>
     </div>
