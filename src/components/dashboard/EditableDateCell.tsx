@@ -18,7 +18,12 @@ export const EditableDateCell: React.FC<EditableDateCellProps> = ({
   onUpdate
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(currentValue || '');
+  const [editValue, setEditValue] = useState(() => {
+    if (!currentValue) return '';
+    // Ensure the date is treated as local date, not UTC
+    const date = new Date(currentValue + 'T12:00:00');
+    return format(date, 'yyyy-MM-dd');
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
@@ -63,7 +68,13 @@ export const EditableDateCell: React.FC<EditableDateCellProps> = ({
   };
 
   const handleCancel = () => {
-    setEditValue(currentValue || '');
+    if (!currentValue) {
+      setEditValue('');
+    } else {
+      // Ensure the date is treated as local date, not UTC
+      const date = new Date(currentValue + 'T12:00:00');
+      setEditValue(format(date, 'yyyy-MM-dd'));
+    }
     setIsEditing(false);
   };
 
@@ -104,7 +115,11 @@ export const EditableDateCell: React.FC<EditableDateCellProps> = ({
     );
   }
 
-  const displayValue = currentValue ? format(new Date(currentValue), 'dd/MM/yyyy') : 'N/A';
+  const displayValue = currentValue ? (() => {
+    // Ensure the date is treated as local date, not UTC
+    const date = new Date(currentValue + 'T12:00:00');
+    return format(date, 'dd/MM/yyyy');
+  })() : 'N/A';
 
   return (
     <div className="flex items-center gap-2 group">
