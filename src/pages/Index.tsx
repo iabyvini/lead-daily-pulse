@@ -447,17 +447,18 @@ const Index = () => {
                               <SelectValue placeholder="Selecione um vendedor" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="Jean">Jean</SelectItem>
-                              <SelectItem value="Rafaela">Rafaela</SelectItem>
-                              <SelectItem value="Ricardo">Ricardo</SelectItem>
-                              <SelectItem value="Lara">Lara</SelectItem>
-                              <SelectItem value="Cris">Cris</SelectItem>
-                              <SelectItem value="Guilherme">Guilherme</SelectItem>
-                              <SelectItem value="Yago">Yago</SelectItem>
-                              <SelectItem value="Lorena">Lorena</SelectItem>
+                              <SelectItem value="Adrielly">Adrielly</SelectItem>
+                              <SelectItem value="Anderson">Anderson</SelectItem>
                               <SelectItem value="André">André</SelectItem>
-                              <SelectItem value="Vinícius">Vinícius</SelectItem>
+                              <SelectItem value="Jean">Jean</SelectItem>
+                              <SelectItem value="Jonathan">Jonathan</SelectItem>
+                              <SelectItem value="Lara">Lara</SelectItem>
+                              <SelectItem value="Lorena">Lorena</SelectItem>
+                              <SelectItem value="Rafaela">Rafaela</SelectItem>
                               <SelectItem value="Thamer">Thamer</SelectItem>
+                              <SelectItem value="Vinícius">Vinícius</SelectItem>
+                              <SelectItem value="Viviane">Viviane</SelectItem>
+                              <SelectItem value="Yago">Yago</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
