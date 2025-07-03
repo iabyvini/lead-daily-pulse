@@ -11,15 +11,7 @@ import { InlineAddMeetingRow } from './InlineAddMeetingRow';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-interface MeetingDetail {
-  id: string;
-  nome_lead: string;
-  data_agendamento: string;
-  horario_agendamento: string;
-  status: string;
-  vendedor_responsavel: string;
-  report_id?: string;
-}
+import { MeetingDetail } from '@/types/meeting';
 
 interface MeetingsTableProps {
   meetings: MeetingDetail[];
