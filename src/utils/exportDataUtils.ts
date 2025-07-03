@@ -32,7 +32,7 @@ export const prepareReportsData = (reports: DailyReport[]) => {
 export const prepareMeetingsData = (meetings: MeetingDetail[]) => {
   return meetings.map(meeting => ({
     'Lead': meeting.nome_lead,
-    'Data': format(new Date(meeting.data_agendamento), 'dd/MM/yyyy'),
+    'Data': format(new Date(meeting.data_agendamento + 'T12:00:00'), 'dd/MM/yyyy'),
     'Horário': meeting.horario_agendamento,
     'Status': meeting.status,
     'Vendedor Responsável': meeting.vendedor_responsavel || 'N/A'
