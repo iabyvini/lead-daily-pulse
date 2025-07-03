@@ -20,6 +20,7 @@ interface MeetingDetail {
   horario_agendamento: string;
   status: string;
   vendedor_responsavel: string | null;
+  report_id?: string | null;
 }
 
 export const useCSVExport = () => {
@@ -60,7 +61,7 @@ export const useCSVExport = () => {
       
       // Exportar Detalhes das Reuniões
       if (meetings.length > 0) {
-        const meetingsData = prepareMeetingsData(meetings);
+        const meetingsData = prepareMeetingsData(meetings, reports);
         const csvMeetings = convertToCSV(meetingsData);
         downloadCSV(csvMeetings, `detalhes_reunioes_${timestamp}.csv`);
       }

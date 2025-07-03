@@ -21,6 +21,7 @@ interface MeetingDetail {
   horario_agendamento: string;
   status: string;
   vendedor_responsavel: string | null;
+  report_id?: string | null;
 }
 
 interface ExportButtonsProps {

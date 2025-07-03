@@ -4,8 +4,8 @@ export interface MeetingDetail {
   data_agendamento: string;
   horario_agendamento: string;
   status: string;
-  vendedor_responsavel: string;
-  report_id?: string;
+  vendedor_responsavel: string | null;
+  report_id?: string | null;
 }
 
 export interface MeetingFormData {

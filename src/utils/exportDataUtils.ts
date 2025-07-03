@@ -17,6 +17,7 @@ interface MeetingDetail {
   horario_agendamento: string;
   status: string;
   vendedor_responsavel: string | null;
+  report_id?: string | null;
 }
 
 export const prepareReportsData = (reports: DailyReport[]) => {
@@ -29,8 +30,14 @@ export const prepareReportsData = (reports: DailyReport[]) => {
   }));
 };
 
-export const prepareMeetingsData = (meetings: MeetingDetail[]) => {
+export const prepareMeetingsData = (meetings: MeetingDetail[], reports: DailyReport[]) => {
   console.log('Preparing meetings data for export:', meetings);
+  
+  const getSDRFromReportId = (reportId: string | null | undefined) => {
+    if (!reportId) return 'N/A';
+    const report = reports.find(r => r.id === reportId);
+    return report?.vendedor || 'N/A';
+  };
   
   return meetings.map(meeting => {
     console.log('Processing meeting:', meeting);
@@ -40,7 +47,8 @@ export const prepareMeetingsData = (meetings: MeetingDetail[]) => {
       'Data': format(new Date(meeting.data_agendamento + 'T12:00:00'), 'dd/MM/yyyy'),
       'Horário': meeting.horario_agendamento,
       'Status': meeting.status,
-      'SDR Responsável': meeting.vendedor_responsavel || 'N/A'
+      'SDR Responsável': getSDRFromReportId(meeting.report_id),
+      'Vendedor Responsável': meeting.vendedor_responsavel || 'N/A'
     };
   });
 };

@@ -21,6 +21,7 @@ interface MeetingDetail {
   horario_agendamento: string;
   status: string;
   vendedor_responsavel: string | null;
+  report_id?: string | null;
 }
 
 export const useXLSXExport = () => {
@@ -57,7 +58,7 @@ export const useXLSXExport = () => {
       XLSX.utils.book_append_sheet(wb, wsReports, "Relatórios Diários");
       
       // Aba de Detalhes das Reuniões
-      const meetingsData = prepareMeetingsData(meetings);
+      const meetingsData = prepareMeetingsData(meetings, reports);
       const wsMeetings = XLSX.utils.json_to_sheet(meetingsData);
       
       // Ajustar largura das colunas para reuniões
@@ -66,6 +67,7 @@ export const useXLSXExport = () => {
         { wch: 12 }, // Data
         { wch: 10 }, // Horário
         { wch: 12 }, // Status
+        { wch: 20 }, // SDR Responsável
         { wch: 20 }  // Vendedor Responsável
       ];
       wsMeetings['!cols'] = meetingsColWidths;
