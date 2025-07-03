@@ -56,7 +56,7 @@ export const AddMeetingForm: React.FC<AddMeetingFormProps> = ({ reports, onMeeti
           horario_agendamento: formData.horario_agendamento,
           status: formData.status,
           vendedor_responsavel: formData.vendedor_responsavel || null,
-          report_id: formData.report_id || null
+          report_id: formData.report_id === 'none' ? null : formData.report_id || null
         });
 
       if (error) {
@@ -202,7 +202,7 @@ export const AddMeetingForm: React.FC<AddMeetingFormProps> = ({ reports, onMeeti
                 <SelectValue placeholder="Selecione o relatório de origem" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum relatório específico</SelectItem>
+                <SelectItem value="none">Nenhum relatório específico</SelectItem>
                 {reports.map((report) => (
                   <SelectItem key={report.id} value={report.id}>
                     {report.vendedor} - {new Date(report.data_registro + 'T12:00:00').toLocaleDateString('pt-BR')}

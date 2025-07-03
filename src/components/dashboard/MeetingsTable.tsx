@@ -7,7 +7,9 @@ import { EditableDateCell } from './EditableDateCell';
 import { EditableTimeCell } from './EditableTimeCell';
 import { EditableStatusCell } from './EditableStatusCell';
 import { EditableVendorCell } from './EditableVendorCell';
-import { AddMeetingForm } from './AddMeetingForm';
+import { InlineAddMeetingRow } from './InlineAddMeetingRow';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface MeetingDetail {
   id: string;
@@ -28,10 +30,17 @@ interface MeetingsTableProps {
 }
 
 export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, reports, onVendorUpdate, onMeetingUpdate, onMeetingAdded }) => {
+  const [showAddRow, setShowAddRow] = React.useState(false);
+
   const getSDRFromReportId = (reportId: string | null | undefined) => {
     if (!reportId) return 'N/A';
     const report = reports.find(r => r.id === reportId);
     return report?.vendedor || 'N/A';
+  };
+
+  const handleMeetingAdded = () => {
+    setShowAddRow(false);
+    onMeetingAdded();
   };
 
   return (
@@ -39,7 +48,13 @@ export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, reports,
       <CardHeader className="bg-gradient-to-r from-[#1bccae] to-emerald-500 text-white">
         <div className="flex justify-between items-center">
           <CardTitle>Detalhes das Reuniões ({meetings.length} registros)</CardTitle>
-          <AddMeetingForm reports={reports} onMeetingAdded={onMeetingAdded} />
+          <Button 
+            onClick={() => setShowAddRow(!showAddRow)}
+            className="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            {showAddRow ? 'Cancelar' : 'Adicionar Reunião'}
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="p-0">
@@ -53,9 +68,17 @@ export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, reports,
                 <TableHead>Status</TableHead>
                 <TableHead>SDR Responsável</TableHead>
                 <TableHead>Vendedor Responsável</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
+              {showAddRow && (
+                <InlineAddMeetingRow 
+                  reports={reports}
+                  onMeetingAdded={handleMeetingAdded}
+                  onCancel={() => setShowAddRow(false)}
+                />
+              )}
               {meetings.map((meeting) => (
                 <TableRow key={meeting.id}>
                   <TableCell className="font-medium">
@@ -98,6 +121,7 @@ export const MeetingsTable: React.FC<MeetingsTableProps> = ({ meetings, reports,
                       onUpdate={(newVendor) => onVendorUpdate(meeting.id, newVendor)}
                     />
                   </TableCell>
+                  <TableCell></TableCell>
                 </TableRow>
               ))}
             </TableBody>
