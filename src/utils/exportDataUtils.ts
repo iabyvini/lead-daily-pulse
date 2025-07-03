@@ -16,7 +16,7 @@ interface MeetingDetail {
   data_agendamento: string;
   horario_agendamento: string;
   status: string;
-  vendedor_responsavel: string;
+  vendedor_responsavel: string | null;
 }
 
 export const prepareReportsData = (reports: DailyReport[]) => {
