@@ -9,7 +9,7 @@ export const useMeetingForm = (onSuccess?: () => void) => {
     nome_lead: '',
     data_agendamento: '',
     horario_agendamento: '',
-    status: 'Agendada',
+    status: 'Agendado',
     vendedor_responsavel: '',
     report_id: ''
   });
@@ -19,7 +19,7 @@ export const useMeetingForm = (onSuccess?: () => void) => {
       nome_lead: '',
       data_agendamento: '',
       horario_agendamento: '',
-      status: 'Agendada',
+      status: 'Agendado',
       vendedor_responsavel: '',
       report_id: ''
     });

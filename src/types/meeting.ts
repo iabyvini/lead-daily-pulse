@@ -18,10 +18,10 @@ export interface MeetingFormData {
 }
 
 export const MEETING_STATUS_OPTIONS = [
-  'Agendada',
-  'Realizada', 
-  'Cancelada',
-  'Reagendada',
+  'Agendado',
+  'Realizado', 
+  'Cancelado',
+  'Reagendado',
   'No Show'
 ] as const;
 
