@@ -79,6 +79,73 @@ function validateReportData(data: any): { isValid: boolean; errors: string[] } {
   return { isValid: errors.length === 0, errors };
 }
 
+// Enhanced meeting validation function
+function validateAndFilterMeetings(reunioes: any[]): any[] {
+  if (!Array.isArray(reunioes)) {
+    console.log('⚠️ Reuniões não é um array:', typeof reunioes);
+    return [];
+  }
+
+  console.log(`🔍 Validando ${reunioes.length} reuniões recebidas...`);
+  
+  const validMeetings = reunioes.filter((reuniao, index) => {
+    // Log each meeting for debugging
+    console.log(`📋 Reunião ${index + 1}:`, JSON.stringify(reuniao, null, 2));
+    
+    // Check if nomeLead exists and is not empty after trimming
+    const hasValidLead = reuniao.nomeLead && 
+                        typeof reuniao.nomeLead === 'string' && 
+                        reuniao.nomeLead.trim().length > 0;
+    
+    if (!hasValidLead) {
+      console.log(`❌ Reunião ${index + 1} rejeitada: nome do lead inválido`);
+      return false;
+    }
+    
+    // Additional validation for required fields
+    const hasValidDate = reuniao.dataAgendamento && 
+                        typeof reuniao.dataAgendamento === 'string' && 
+                        reuniao.dataAgendamento.trim().length > 0;
+    
+    const hasValidTime = reuniao.horarioAgendamento && 
+                        typeof reuniao.horarioAgendamento === 'string' && 
+                        reuniao.horarioAgendamento.trim().length > 0;
+    
+    if (!hasValidDate || !hasValidTime) {
+      console.log(`⚠️ Reunião ${index + 1}: dados incompletos mas será mantida`);
+    }
+    
+    console.log(`✅ Reunião ${index + 1} aprovada`);
+    return true;
+  });
+
+  console.log(`✅ ${validMeetings.length} reuniões válidas de ${reunioes.length} total`);
+  return validMeetings;
+}
+
+// Function to verify meeting details were saved
+async function verifyMeetingDetailsSaved(supabase: any, reportId: string, expectedCount: number): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('meeting_details')
+      .select('id')
+      .eq('report_id', reportId);
+
+    if (error) {
+      console.error('❌ Erro ao verificar meeting_details salvos:', error);
+      return false;
+    }
+
+    const actualCount = data?.length || 0;
+    console.log(`🔍 Verificação: esperado ${expectedCount}, encontrado ${actualCount} meeting_details`);
+    
+    return actualCount === expectedCount;
+  } catch (error) {
+    console.error('❌ Erro na verificação de meeting_details:', error);
+    return false;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -91,16 +158,16 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('Processing report submission');
+    console.log('🚀 Iniciando processamento de relatório');
 
     // Parse and validate request data
     const reportData: ReportData = await req.json();
-    console.log('Dados recebidos:', JSON.stringify(reportData, null, 2));
+    console.log('📊 Dados recebidos:', JSON.stringify(reportData, null, 2));
 
     // Validate input data
     const validation = validateReportData(reportData);
     if (!validation.isValid) {
-      console.error('Validation errors:', validation.errors);
+      console.error('❌ Erros de validação:', validation.errors);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -114,6 +181,7 @@ serve(async (req) => {
     }
 
     // Save report to database using service role (bypasses RLS)
+    console.log('💾 Salvando relatório na database...');
     const { data: reportRecord, error: reportError } = await supabase
       .from('daily_reports')
       .insert({
@@ -126,7 +194,7 @@ serve(async (req) => {
       .single();
 
     if (reportError) {
-      console.error('Erro ao salvar relatório:', reportError);
+      console.error('❌ Erro ao salvar relatório:', reportError);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -139,58 +207,107 @@ serve(async (req) => {
       );
     }
 
-    console.log('Relatório salvo:', reportRecord);
+    console.log('✅ Relatório salvo com ID:', reportRecord.id);
 
-    // Save ALL meeting details if any
+    // Process meeting details with enhanced validation and error handling
+    let meetingDetailsSuccess = true;
+    let meetingDetailsError = null;
+
     if (reportData.reunioes && reportData.reunioes.length > 0) {
-      console.log(`Salvando ${reportData.reunioes.length} detalhes de reuniões...`);
+      console.log(`📅 Processando ${reportData.reunioes.length} reuniões...`);
       
-      // Filter out completely empty meetings but keep partially filled ones
-      const validMeetings = reportData.reunioes.filter(reuniao => 
-        reuniao.nomeLead && reuniao.nomeLead.trim().length > 0
-      );
+      // Enhanced meeting validation
+      const validMeetings = validateAndFilterMeetings(reportData.reunioes);
       
-      console.log(`Reuniões válidas filtradas: ${validMeetings.length}`);
-
       if (validMeetings.length > 0) {
-        const meetingDetails = validMeetings.map(reuniao => ({
-          report_id: reportRecord.id,
-          nome_lead: reuniao.nomeLead.trim(),
-          data_agendamento: reuniao.dataAgendamento,
-          horario_agendamento: reuniao.horarioAgendamento,
-          status: reuniao.status,
-          vendedor_responsavel: reuniao.nomeVendedor ? reuniao.nomeVendedor.trim() : null,
-        }));
+        console.log(`💾 Preparando para salvar ${validMeetings.length} meeting_details...`);
+        
+        const meetingDetails = validMeetings.map((reuniao, index) => {
+          const meetingDetail = {
+            report_id: reportRecord.id,
+            nome_lead: reuniao.nomeLead.trim(),
+            data_agendamento: reuniao.dataAgendamento || '',
+            horario_agendamento: reuniao.horarioAgendamento || '',
+            status: reuniao.status || 'Agendado',
+            vendedor_responsavel: reuniao.nomeVendedor ? reuniao.nomeVendedor.trim() : null,
+          };
+          
+          console.log(`📋 Meeting detail ${index + 1}:`, JSON.stringify(meetingDetail, null, 2));
+          return meetingDetail;
+        });
 
-        console.log('Inserindo detalhes das reuniões:', JSON.stringify(meetingDetails, null, 2));
+        console.log('💾 Inserindo meeting_details na database...');
+        
+        try {
+          const { data: meetingsData, error: meetingsError } = await supabase
+            .from('meeting_details')
+            .insert(meetingDetails)
+            .select();
 
-        const { data: meetingsData, error: meetingsError } = await supabase
-          .from('meeting_details')
-          .insert(meetingDetails)
-          .select();
-
-        if (meetingsError) {
-          console.error('Erro ao salvar detalhes das reuniões:', meetingsError);
-          // Log the error but don't fail the entire operation
-        } else {
-          console.log(`✅ ${meetingsData?.length || 0} detalhes de reuniões salvos com sucesso!`);
+          if (meetingsError) {
+            console.error('❌ Erro ao salvar meeting_details:', meetingsError);
+            meetingDetailsSuccess = false;
+            meetingDetailsError = meetingsError.message;
+            
+            // Try to insert one by one to identify problematic records
+            console.log('🔄 Tentativa de inserção individual...');
+            for (let i = 0; i < meetingDetails.length; i++) {
+              try {
+                const { error: individualError } = await supabase
+                  .from('meeting_details')
+                  .insert(meetingDetails[i]);
+                
+                if (individualError) {
+                  console.error(`❌ Erro na reunião ${i + 1}:`, individualError);
+                } else {
+                  console.log(`✅ Reunião ${i + 1} salva individualmente`);
+                }
+              } catch (err) {
+                console.error(`❌ Erro fatal na reunião ${i + 1}:`, err);
+              }
+            }
+          } else {
+            console.log(`✅ ${meetingsData?.length || 0} meeting_details salvos com sucesso!`);
+            
+            // Verify the data was actually saved
+            const verificationSuccess = await verifyMeetingDetailsSaved(
+              supabase, 
+              reportRecord.id, 
+              validMeetings.length
+            );
+            
+            if (!verificationSuccess) {
+              console.error('❌ Verificação falhou: meeting_details não foram salvos corretamente');
+              meetingDetailsSuccess = false;
+              meetingDetailsError = 'Verificação pós-inserção falhou';
+            }
+          }
+        } catch (err: any) {
+          console.error('❌ Erro fatal ao inserir meeting_details:', err);
+          meetingDetailsSuccess = false;
+          meetingDetailsError = err.message;
         }
+      } else {
+        console.log('⚠️ Nenhuma reunião válida encontrada após filtragem');
       }
+    } else {
+      console.log('ℹ️ Nenhuma reunião fornecida');
     }
 
-    // Try to log audit - don't fail if this fails
+    // Log audit - try but don't fail if this fails
     try {
       await supabase
         .from('submission_audit')
         .insert({
           user_email: reportData.vendedor,
           submission_data: reportData as any,
-          status: 'success',
-          error_message: null,
+          status: meetingDetailsSuccess ? 'success' : 'partial_success',
+          error_message: meetingDetailsError,
           user_agent: req.headers.get('user-agent') || 'Unknown'
         });
+      console.log('✅ Auditoria registrada');
     } catch (auditError) {
-      console.warn('Failed to log audit (non-critical):', auditError);
+      console.warn('⚠️ Falha ao registrar auditoria (não crítico):', auditError);
     }
 
     // Prepare email content with sanitized data
@@ -226,6 +343,7 @@ serve(async (req) => {
         <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="color: #047857; margin-top: 0;">🤝 Detalhes das Reuniões</h3>
           <pre style="background-color: white; padding: 15px; border-radius: 4px; border-left: 4px solid #1bccae; font-family: monospace; white-space: pre-wrap;">${reunioesText}</pre>
+          ${!meetingDetailsSuccess ? `<div style="background-color: #fef2f2; border: 1px solid #fecaca; padding: 10px; border-radius: 4px; margin-top: 10px;"><strong style="color: #dc2626;">⚠️ Aviso:</strong> Houve um problema ao salvar alguns detalhes das reuniões no sistema.</div>` : ''}
         </div>
 
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
@@ -233,30 +351,32 @@ serve(async (req) => {
             Relatório gerado automaticamente pelo sistema LigueLead<br>
             Data de envio: ${new Date().toLocaleString('pt-BR')}<br>
             ID do Relatório: ${reportRecord.id}
+            ${!meetingDetailsSuccess ? '<br><span style="color: #dc2626;">Status: Detalhes das reuniões parcialmente salvos</span>' : ''}
           </p>
         </div>
       </div>
     `;
 
     // Send email
+    console.log('📧 Enviando email...');
     const emailResult = await resend.emails.send({
       from: "LigueLead <onboarding@resend.dev>",
       to: ["viniciusrodrigues@liguelead.com.br"],
-      subject: `📊 Relatório Diário - ${reportData.vendedor.trim()} - ${new Date(reportData.dataRegistro).toLocaleDateString('pt-BR')}`,
+      subject: `📊 Relatório Diário - ${reportData.vendedor.trim()} - ${new Date(reportData.dataRegistro).toLocaleDateString('pt-BR')}${!meetingDetailsSuccess ? ' (Detalhes Parciais)' : ''}`,
       html: emailHtml,
     });
 
-    console.log('Resultado do envio de email:', emailResult);
+    console.log('📧 Resultado do email:', emailResult);
 
     if (emailResult.error) {
-      console.error('Erro no Resend:', emailResult.error);
-      // Don't fail the entire operation if email fails
+      console.error('❌ Erro no Resend:', emailResult.error);
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: 'Relatório salvo com sucesso, mas houve um problema ao enviar o email',
           reportId: reportRecord.id,
-          emailError: 'Erro no envio do email'
+          emailError: 'Erro no envio do email',
+          meetingDetailsStatus: meetingDetailsSuccess ? 'success' : 'partial_failure'
         }), 
         {
           status: 200,
@@ -265,12 +385,19 @@ serve(async (req) => {
       );
     }
 
+    const responseMessage = meetingDetailsSuccess 
+      ? 'Relatório salvo e email enviado com sucesso!'
+      : 'Relatório salvo e email enviado, mas alguns detalhes das reuniões podem não ter sido salvos corretamente.';
+
+    console.log('✅ Processamento concluído:', responseMessage);
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Relatório salvo e email enviado com sucesso!',
+        message: responseMessage,
         reportId: reportRecord.id,
-        emailId: emailResult.data?.id
+        emailId: emailResult.data?.id,
+        meetingDetailsStatus: meetingDetailsSuccess ? 'success' : 'partial_failure'
       }), 
       {
         status: 200,
@@ -279,7 +406,7 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('Erro na função send-report-email:', error);
+    console.error('❌ Erro fatal na função send-report-email:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 

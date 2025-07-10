@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Send, Users, BarChart3, CalendarDays, Clock, User, Briefcase, Phone, MessageSquare, Bot, Shield, AlertTriangle } from 'lucide-react';
+import { Loader2, Send, Users, BarChart3, CalendarDays, Clock, User, Briefcase, Phone, MessageSquare, Bot, Shield, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -121,7 +122,7 @@ const Index = () => {
         await supabase.from('submission_audit').insert({
           user_email: formData.vendedor,
           submission_data: submissionData as any,
-          status: 'retry',
+          status: 'attempt',
           error_message: null,
           user_agent: navigator.userAgent
         });
@@ -188,10 +189,19 @@ const Index = () => {
             console.warn('Falha ao registrar auditoria de sucesso:', err);
           }
 
-          toast({
-            title: "✅ Relatório enviado com sucesso!",
-            description: `Seu relatório foi salvo no sistema e enviado por email (tentativa ${attempt}).`,
-          });
+          // Check meeting details status and show appropriate message
+          const meetingDetailsStatus = emailResult.meetingDetailsStatus;
+          if (meetingDetailsStatus === 'partial_failure') {
+            toast({
+              title: "⚠️ Relatório enviado com avisos",
+              description: `Seu relatório foi salvo e enviado, mas alguns detalhes das reuniões podem não ter sido salvos corretamente. Verifique no dashboard administrativo.`,
+            });
+          } else {
+            toast({
+              title: "✅ Relatório enviado com sucesso!",
+              description: `Seu relatório foi salvo no sistema e enviado por email (tentativa ${attempt}).`,
+            });
+          }
 
           // Reset form
           setFormData({
