@@ -38,7 +38,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ reports, meetings 
   return (
     <div className="flex gap-2">
       <Button
-        onClick={() => exportToXLSX([], meetings)}
+        onClick={() => exportToXLSX(reports, meetings)}
         disabled={isExporting}
         variant="outline"
         className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
@@ -52,7 +52,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ reports, meetings 
       </Button>
       
       <Button
-        onClick={() => exportToCSV([], meetings)}
+        onClick={() => exportToCSV(reports, meetings)}
         disabled={isExporting}
         variant="outline"
         className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
