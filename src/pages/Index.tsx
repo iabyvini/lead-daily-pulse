@@ -464,6 +464,7 @@ const Index = () => {
                               <SelectItem value="Jean">Jean</SelectItem>
                               <SelectItem value="Jonathan">Jonathan</SelectItem>
                               <SelectItem value="Lara">Lara</SelectItem>
+                              <SelectItem value="Vinícius">Vinícius</SelectItem>
                               <SelectItem value="Lorena">Lorena</SelectItem>
                               <SelectItem value="Rafaela">Rafaela</SelectItem>
                               <SelectItem value="Thamer">Thamer</SelectItem>
