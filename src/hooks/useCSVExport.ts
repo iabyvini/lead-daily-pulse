@@ -39,10 +39,10 @@ export const useCSVExport = () => {
   };
 
   const exportToCSV = async (reports: DailyReport[], meetings: MeetingDetail[]) => {
-    if (reports.length === 0 && meetings.length === 0) {
+    if (meetings.length === 0) {
       toast({
         title: "⚠️ Aviso",
-        description: "Não há dados para exportar",
+        description: "Não há reuniões para exportar",
         variant: "destructive",
       });
       return;
@@ -52,23 +52,14 @@ export const useCSVExport = () => {
     try {
       const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
       
-      // Exportar Relatórios Diários
-      if (reports.length > 0) {
-        const reportsData = prepareReportsData(reports);
-        const csvReports = convertToCSV(reportsData);
-        downloadCSV(csvReports, `relatorios_diarios_${timestamp}.csv`);
-      }
-      
-      // Exportar Detalhes das Reuniões
-      if (meetings.length > 0) {
-        const meetingsData = prepareMeetingsData(meetings, reports);
-        const csvMeetings = convertToCSV(meetingsData);
-        downloadCSV(csvMeetings, `detalhes_reunioes_${timestamp}.csv`);
-      }
+      // Exportar apenas Detalhes das Reuniões
+      const meetingsData = prepareMeetingsData(meetings, reports);
+      const csvMeetings = convertToCSV(meetingsData);
+      downloadCSV(csvMeetings, `reunioes_${timestamp}.csv`);
       
       toast({
         title: "✅ Sucesso",
-        description: "Arquivos CSV exportados com sucesso!",
+        description: "Arquivo CSV de reuniões exportado com sucesso!",
       });
     } catch (error) {
       console.error('Erro ao exportar CSV:', error);

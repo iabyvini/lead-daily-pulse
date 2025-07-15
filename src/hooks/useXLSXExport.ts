@@ -28,10 +28,10 @@ export const useXLSXExport = () => {
   const [isExporting, setIsExporting] = useState(false);
 
   const exportToXLSX = async (reports: DailyReport[], meetings: MeetingDetail[]) => {
-    if (reports.length === 0 && meetings.length === 0) {
+    if (meetings.length === 0) {
       toast({
         title: "⚠️ Aviso",
-        description: "Não há dados para exportar",
+        description: "Não há reuniões para exportar",
         variant: "destructive",
       });
       return;
@@ -40,22 +40,6 @@ export const useXLSXExport = () => {
     setIsExporting(true);
     try {
       const wb = XLSX.utils.book_new();
-      
-      // Aba de Relatórios Diários
-      const reportsData = prepareReportsData(reports);
-      const wsReports = XLSX.utils.json_to_sheet(reportsData);
-      
-      // Ajustar largura das colunas para relatórios
-      const reportsColWidths = [
-        { wch: 20 }, // SDR
-        { wch: 12 }, // Data
-        { wch: 18 }, // Reuniões Agendadas
-        { wch: 18 }, // Reuniões Realizadas
-        { wch: 18 }  // Data de Envio
-      ];
-      wsReports['!cols'] = reportsColWidths;
-      
-      XLSX.utils.book_append_sheet(wb, wsReports, "Relatórios Diários");
       
       // Aba de Detalhes das Reuniões
       const meetingsData = prepareMeetingsData(meetings, reports);
@@ -76,7 +60,7 @@ export const useXLSXExport = () => {
       
       // Gerar arquivo
       const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
-      const fileName = `relatorios_${timestamp}.xlsx`;
+      const fileName = `reunioes_${timestamp}.xlsx`;
       
       XLSX.writeFile(wb, fileName);
       
