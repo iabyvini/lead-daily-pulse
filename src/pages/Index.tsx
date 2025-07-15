@@ -346,7 +346,6 @@ const Index = () => {
                     <SelectContent>
                       <SelectItem value="Nathalia">Nathalia</SelectItem>
                       <SelectItem value="Taynara">Taynara</SelectItem>
-                      <SelectItem value="Francisco">Francisco</SelectItem>
                       <SelectItem value="Vinícius">Vinícius</SelectItem>
                     </SelectContent>
                   </Select>
