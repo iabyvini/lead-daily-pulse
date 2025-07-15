@@ -38,7 +38,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ reports, meetings 
   return (
     <div className="flex gap-2">
       <Button
-        onClick={() => exportToXLSX(reports, meetings)}
+        onClick={() => exportToXLSX([], meetings)}
         disabled={isExporting}
         variant="outline"
         className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
@@ -48,11 +48,11 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ reports, meetings 
         ) : (
           <FileSpreadsheet className="h-4 w-4 mr-2" />
         )}
-        Exportar XLSX
+        Exportar Reuniões XLSX
       </Button>
       
       <Button
-        onClick={() => exportToCSV(reports, meetings)}
+        onClick={() => exportToCSV([], meetings)}
         disabled={isExporting}
         variant="outline"
         className="border-emerald-500 text-emerald-600 hover:bg-emerald-50"
@@ -62,7 +62,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ reports, meetings 
         ) : (
           <Download className="h-4 w-4 mr-2" />
         )}
-        Exportar CSV
+        Exportar Reuniões CSV
       </Button>
     </div>
   );

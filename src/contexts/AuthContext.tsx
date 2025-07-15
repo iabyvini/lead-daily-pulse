@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AccessLevel: Checking access level for email:', userEmail);
     
     // Direct admin check - if email is in admin list, return admin immediately
-    const adminEmails = ['viniciusrodrigues@liguelead.com.br', 'patricia@liguelead.com.br'];
+    const adminEmails = ['viniciusrodrigues@liguelead.com.br', 'patricia@liguelead.com.br', 'adrianelopes@liguelead.com.br'];
     if (adminEmails.includes(userEmail)) {
       console.log('AccessLevel: Email is admin, returning admin level');
       return 'admin';
